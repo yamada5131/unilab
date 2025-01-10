@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Computer;
+use App\Models\Room;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,11 +14,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Create Rooms
+        $rooms = Room::factory()->count(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Create Users
+        $users = User::factory()->count(10)->create();
+
+        // Create Computers and assign them to Rooms
+        foreach ($rooms as $room) {
+            $computers = Computer::factory()->count(48)->create([
+                'room_id' => $room->id,
+            ]);
+        }
+
     }
 }

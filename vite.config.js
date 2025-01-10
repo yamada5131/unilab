@@ -1,13 +1,11 @@
-import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
+import laravel from 'laravel-vite-plugin';
+import { defineConfig } from 'vite';
+import vueDevTools from 'vite-plugin-vue-devtools';
+import Inspector from 'vite-plugin-vue-inspector'; // OR
 
 export default defineConfig({
     plugins: [
-        laravel({
-            input: 'resources/js/app.ts',
-            refresh: true,
-        }),
         vue({
             template: {
                 transformAssetUrls: {
@@ -16,5 +14,11 @@ export default defineConfig({
                 },
             },
         }),
+        vueDevTools({ appendTo: 'app.ts' }),
+        laravel({
+            input: 'resources/js/app.ts',
+            refresh: true,
+        }),
+        Inspector(),
     ],
 });
