@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ComputerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Foundation\Application;
@@ -32,6 +33,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/rooms/{room}', [RoomController::class, 'update'])->name('rooms.update');
     Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
 
+    Route::post('/computers/{id}/command', [ComputerController::class, 'sendCommand'])->name('computers.command');
+
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

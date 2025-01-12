@@ -27,7 +27,7 @@ class RoomController extends Controller
 
     public function store(Request $request): \Illuminate\Http\RedirectResponse
     {
-        $validated = request()->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'capacity' => 'required|integer',
         ]);

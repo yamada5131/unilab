@@ -72,6 +72,45 @@ return [
             'after_commit' => false,
         ],
 
+        'rabbitmq' => [
+            'driver' => 'rabbitmq',
+            'queue' => env('RABBITMQ_QUEUE', 'default'),
+            'worker' => env('RABBITMQ_WORKER', 'default'),
+            'hosts' => [
+                [
+                    'host' => env('RABBITMQ_HOST', 'armadillo.rmq.cloudamqp.com'),
+                    'port' => env('RABBITMQ_PORT', 5672),
+                    'user' => env('RABBITMQ_USER', 'aizfhyyx'),
+                    'password' => env('RABBITMQ_PASSWORD', 'LZhALcBsyDLc1pqBJNowAzFWJ_GsaSBw'),
+                    'vhost' => env('RABBITMQ_VHOST', 'aizfhyyx'),
+                ],
+            ],
+            'options' => [
+
+                'ssl_options' => [
+                    'cafile' => env('RABBITMQ_SSL_CAFILE', null),
+                    'local_cert' => env('RABBITMQ_SSL_CERTFILE', null),
+                    'local_key' => env('RABBITMQ_SSL_KEYFILE', null),
+                    'verify_peer' => env('RABBITMQ_SSL_VERIFY_PEER', true),
+                ],
+                'queue' => [
+                    // Exchange configuration
+                    'exchange' => 'computer_commands',
+                    'exchange_type' => 'topic',
+                    'exchange_routing_key' => 'computer.%s.command', // tên queue được chỉ định qua onQueue() sẽ được sử dụng thay thế vào %s trong cấu hình exchange_routing_key
+                    // Priority configuration when they were delayed
+                    'queue_max_priority' => 5,
+                    'prioritize_delayed' => true,
+
+                    // Failed job handling
+                    'reroute_failed' => true,
+                    'failed_exchange' => 'computer_commands_failed',
+                    'failed_routing_key' => 'computer.%s.failed',
+                ],
+            ],
+
+        ],
+
     ],
 
     /*
