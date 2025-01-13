@@ -10,6 +10,7 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from '@/Components/ui/breadcrumb';
+import Toaster from '@/Components/ui/toast/Toaster.vue';
 
 import {
     Collapsible,
@@ -544,4 +545,5 @@ function setActiveTeam(team: (typeof data.teams)[number]) {
             </div>
         </SidebarInset>
     </SidebarProvider>
+    <Toaster />
 </template>

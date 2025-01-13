@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class ComputerController extends Controller
 {
-    public function sendCommand(Request $request, $id)
+    public function sendCommand(Request $request, string $id)
     {
         $validated = $request->validate([
             'command' => 'required|string',
@@ -17,7 +17,7 @@ class ComputerController extends Controller
         ProcessComputerCommand::dispatch(
             $id,
             $validated['command'],
-        )->onQueue($id);
+        )->onQueue($id.'.#');
 
         return response()->json(['message' => 'Command queued']);
     }

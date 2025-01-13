@@ -97,7 +97,7 @@ return [
                     // Exchange configuration
                     'exchange' => 'computer_commands',
                     'exchange_type' => 'topic',
-                    'exchange_routing_key' => 'computer.%s.command', // tên queue được chỉ định qua onQueue() sẽ được sử dụng thay thế vào %s trong cấu hình exchange_routing_key
+                    // 'exchange_routing_key' => '%s.#', // tên queue được chỉ định qua onQueue() sẽ được sử dụng thay thế vào %s trong cấu hình exchange_routing_key
                     // Priority configuration when they were delayed
                     'queue_max_priority' => 5,
                     'prioritize_delayed' => true,

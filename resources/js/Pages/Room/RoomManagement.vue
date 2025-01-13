@@ -13,9 +13,9 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import AddRoomModal from "./AddRoomModal.vue";
-import { useForm } from "@inertiajs/vue3";
+import { useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import AddRoomModal from './AddRoomModal.vue';
 
 const form = useForm({});
 
@@ -37,8 +37,8 @@ const closeAddRoomModal = () => {
 };
 
 const deleteRoom = (id) => {
-    if (confirm("Are you sure you want to move this to trash")) {
-        form.delete(route("rooms.destroy", { id: id }), {
+    if (confirm('Are you sure you want to move this to trash')) {
+        form.delete(route('rooms.destroy', { id: id }), {
             preserveScroll: true,
         });
     }

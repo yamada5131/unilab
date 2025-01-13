@@ -25,21 +25,21 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref } from 'vue';
 
 const emit = defineEmits;
 
 const form = ref({
-    name: "",
-    capacity: "",
+    name: '',
+    capacity: '',
 });
 
 const closeModal = () => {
-    emit("close");
+    emit('close');
 };
 
 const submitForm = () => {
-    emit("submit", { ...form.value });
+    emit('submit', { ...form.value });
     closeModal();
 };
 </script>

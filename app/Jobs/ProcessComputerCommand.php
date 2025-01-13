@@ -15,9 +15,8 @@ class ProcessComputerCommand implements ShouldQueue
     public function __construct(
         private string $computerId,
         private string $command,
-    ) {
-        // Đặt routing key dựa trên computer id
-    }
+        private array $params = []
+    ) {}
 
     /**
      * Execute the job.
