@@ -12,6 +12,7 @@ import { Textarea } from '@/Components/ui/textarea';
 import { useToast } from '@/Components/ui/toast/use-toast';
 import Computer from '@/Pages/Computer/Computer.vue';
 import { Room } from '@/types';
+import { Link } from '@inertiajs/vue3';
 
 const { toast } = useToast();
 
@@ -200,8 +201,30 @@ const rightseats = computed(() => props.room.computers?.slice(24, 48) || []);
                         Điều khiển
                     </h2>
                     <div class="space-x-2 space-y-2">
-                        <Button as-child>
-                            <a href="#!">Khởi động lại</a>
+                        <Button
+                            as-child
+                            @click="
+                                () => {
+                                    toast({
+                                        title: 'Scheduled: Catch up',
+                                        description:
+                                            'Monday, January 13, 2025 at 5:57 PM',
+                                    });
+                                }
+                            "
+                        >
+                            <Link
+                                :href="
+                                    route('computers.command', {
+                                        id: selectedComputer?.id ?? '#',
+                                    })
+                                "
+                                method="post"
+                                as="button"
+                                :data="{ command: 'restart' }"
+                            >
+                                Khởi động lại
+                            </Link>
                         </Button>
                         <Button as-child>
                             <a href="#!">Tắt máy</a>
@@ -222,7 +245,7 @@ const rightseats = computed(() => props.room.computers?.slice(24, 48) || []);
                                 <FormLabel>Control Command</FormLabel>
                                 <FormControl>
                                     <Textarea
-                                        placeholder="Tell us a little bit about yourself"
+                                        placeholder="Type your command here..."
                                         class="resize-none"
                                         v-bind="componentField"
                                     />

@@ -14,7 +14,7 @@ const props = defineProps<{
             props.computer.status === 'on' && 'border-4 border-green-500',
             props.computer.status === 'off' && 'border-4 border-red-500',
             props.computer.status === 'standby' && 'border-4 border-yellow-500',
-            props.isSelected && 'scale-110 bg-blue-500 text-white shadow-lg', // Hiệu ứng khi được chọn
+            props.isSelected && 'scale-110 !bg-blue-500 text-white shadow-lg', // Hiệu ứng khi được chọn
         ]"
     >
         {{ props.index }}
