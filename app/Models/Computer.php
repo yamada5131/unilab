@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
+ * 
+ *
  * @property int $id
  * @property string $name
  * @property int $room_id
@@ -22,7 +24,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Software> $software
  * @property-read int|null $software_count
  * @property-read \App\Models\ComputerStatus|null $status
- *
  * @method static \Database\Factories\ComputerFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Computer newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Computer newQuery()
@@ -36,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Computer whereOperatingSystem($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Computer whereRoomId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Computer whereUpdatedAt($value)
- *
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Computer whereStatus($value)
  * @mixin \Eloquent
  */
 class Computer extends Model

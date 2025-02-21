@@ -2,19 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Computer;
+use App\Http\Resources\RoomCollection;
+use App\Http\Resources\RoomResource;
 use App\Models\Room;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request as HttpRequest;
+use Illuminate\Support\Facades\Request as FacadesRequest;
 use Inertia\Inertia;
 
 class RoomController extends Controller
 {
-    public function index(): \Inertia\Response
+    public function index()
     {
-        $rooms = Room::all();
-
+        // Render the Room/Index page using Inertia
         return Inertia::render('Room/Index', [
-            'rooms' => $rooms,
+            // 'rooms' contains a paginated list of rooms filtered by search input if provided
+            'rooms' => new RoomCollection(Room::query()
+                // Check if a search query is present in the request, and if so, add a "where" filter on the "name" field
+                ->when(FacadesRequest::input('search'), function ($query, $search) {
+                    $query->where('name', 'like', "%{$search}%");
+                })
+                // Paginate the results, showing 5 rooms per page
+                ->paginate(10)
+                // Append the current query string parameters to the pagination links
+                ->withQueryString()),
+
+            // 'filters' holds the current search filters to maintain state in the UI
+            'filters' => FacadesRequest::only(['search']),
         ]);
     }
 
@@ -25,7 +38,7 @@ class RoomController extends Controller
         return response()->json($rooms);
     }
 
-    public function store(Request $request): \Illuminate\Http\RedirectResponse
+    public function store(HttpRequest $request): \Illuminate\Http\RedirectResponse
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -37,7 +50,7 @@ class RoomController extends Controller
         return to_route('rooms.index');
     }
 
-    public function update(Request $request, $id)
+    public function update(HttpRequest $request, $id)
     {
         $room = Room::findOrFail($id);
         $validated = $request->validate([
@@ -58,19 +71,12 @@ class RoomController extends Controller
         return to_route('rooms.index');
     }
 
-    public function show($id)
+    public function show(Room $room): \Inertia\Response
     {
-        $room = Room::with('computers')->findOrFail($id);
-        // Kiểm tra thuộc tính hardware_specifications của các computers
-        // foreach ($room->computers as $computer) {
-        //     dd(gettype($computer->hardware_specifications)); // Phải là mảng
-        // }
-        //
-        // $computer = Computer::all()->first(); // Phải dùng Eloquent
-        // dd(gettype($computer->hardware_specifications)); // Phải trả về "array"
+        $room->load('computers');
 
         return Inertia::render('Room/Show', [
-            'room' => $room,
+            'room' => RoomResource::make($room),
         ]);
     }
 }

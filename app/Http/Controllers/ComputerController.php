@@ -7,9 +7,9 @@ use Illuminate\Http\Request;
 
 class ComputerController extends Controller
 {
-    public function sendCommand(Request $request, string $id)
+    public function sendCommand(string $id)
     {
-        $validated = $request->validate([
+        $validated = Request::validate([
             'command' => 'required|string',
             'params' => 'array|nullable',
         ]);
