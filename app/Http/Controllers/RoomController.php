@@ -16,15 +16,16 @@ class RoomController extends Controller
         // Render the Room/Index page using Inertia
         return Inertia::render('Room/Index', [
             // 'rooms' contains a paginated list of rooms filtered by search input if provided
-            'rooms' => new RoomCollection(Room::query()
-                // Check if a search query is present in the request, and if so, add a "where" filter on the "name" field
-                ->when(FacadesRequest::input('search'), function ($query, $search) {
-                    $query->where('name', 'like', "%{$search}%");
-                })
-                // Paginate the results, showing 5 rooms per page
-                ->paginate(10)
-                // Append the current query string parameters to the pagination links
-                ->withQueryString()),
+            'rooms' => new RoomCollection(
+                Room::query()
+                    // Check if a search query is present in the request, and if so, add a "where" filter on the "name" field
+                    ->when(FacadesRequest::input('search'), function ($query, $search) {
+                        $query->where('name', 'like', "%{$search}%");
+                    })
+                    // Paginate the results, showing 10 rooms per page
+                    ->paginate(10)
+                    // Append the current query string parameters to the pagination links
+                    ->withQueryString()),
 
             // 'filters' holds the current search filters to maintain state in the UI
             'filters' => FacadesRequest::only(['search']),

@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rooms', function (Blueprint $table) {
+        Schema::create('machine_metrics', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name')->unique();
-            $table->integer('grid_rows')->nullable('false');
-            $table->integer('grid_cols')->nullable('false');
+            $table->foreignUuid('machine_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->float('cpu_usage')->nullable();
+            $table->float('ram_usage')->nullable();
+            $table->float('disk_usage')->nullable();
             $table->timestampsTz();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rooms');
+        Schema::dropIfExists('machine_metrics');
     }
 };

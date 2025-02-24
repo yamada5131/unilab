@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rooms', function (Blueprint $table) {
+        Schema::create('machine_processes', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name')->unique();
-            $table->integer('grid_rows')->nullable('false');
-            $table->integer('grid_cols')->nullable('false');
+            $table->foreignUuid('machine_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->jsonb('processes');
+            $table->timestampTz('reported_at')->useCurrent();
             $table->timestampsTz();
         });
     }
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rooms');
+        Schema::dropIfExists('machine_processes');
     }
 };
