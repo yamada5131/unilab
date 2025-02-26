@@ -8,8 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * 
- *
  * @property int $id
  * @property string $name
  * @property int $capacity
@@ -18,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Computer> $computers
  * @property-read int|null $computers_count
+ *
  * @method static \Database\Factories\RoomFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room newQuery()
@@ -28,8 +27,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room whereIsAvailable($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room whereName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room whereUpdatedAt($value)
+ *
  * @property string $status
+ *
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room whereStatus($value)
+ *
  * @mixin \Eloquent
  */
 class Room extends Model
@@ -39,7 +41,8 @@ class Room extends Model
 
     protected $fillable = [
         'name',
-        'capacity',
+        'grid_rows',
+        'grid_cols',
     ];
 
     public function computers(): HasMany

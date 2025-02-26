@@ -1,165 +1,256 @@
-<!-- eslint-disable vue/valid-v-for -->
 <template>
-    <div class="relative ml-auto w-full max-w-sm items-center">
-        <input
-            v-model="searchModel"
-            type="text"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Search..."
-        />
-        <span
-            class="absolute inset-y-0 start-0 flex items-center justify-center px-2"
-        >
-            <Search class="size-6 text-muted-foreground" />
-        </span>
-    </div>
-    <Table>
-        <!-- <TableCaption>A list of your recent invoices.</TableCaption> -->
-        <TableHeader>
-            <TableRow>
-                <!-- <TableHead class="w-[100px]"> Invoice </TableHead> -->
-                <TableHead>Status</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Capacity</TableHead>
-                <TableHead>Actions</TableHead>
-                <!-- <TableHead class="text-right"> Amount </TableHead> -->
-            </TableRow>
-        </TableHeader>
-        <TableBody v-for="room in rooms.data" :key="room.id">
-            <TableRow>
-                <!-- <TableCell class="font-medium"> INV001 </TableCell> -->
-                <TableCell>{{ room.status }}</TableCell>
-                <TableCell>{{ room.name }}</TableCell>
-                <TableCell>{{ room.capacity }}</TableCell>
-                <TableCell>
-                    <ResponsiveNavLink
-                        class="text-green-500"
-                        :href="route('rooms.show', { id: room.id })"
-                    >
-                        <Button variant="link"> View </Button>
-                    </ResponsiveNavLink>
-                </TableCell>
-                <!-- <TableCell class="text-right"> $250.00 </TableCell> -->
-            </TableRow>
-        </TableBody>
-    </Table>
-
-    <!-- Paginatior -->
-    <div class="mt-6">
-        <Pagination
-            :items-per-page="rooms.meta.per_page"
-            :total="rooms.meta.total"
-            :sibling-count="1"
-            show-edges
-            :default-page="rooms.meta.current_page"
-        >
-            <PaginationList class="flex items-center gap-1">
-                <Link :href="rooms.links.first" preserve-scrol>
-                    <PaginationFirst />
-                </Link>
-                <Link :href="rooms.links.prev" preserve-scrol>
-                    <PaginationPrev />
-                </Link>
-
-                <template
-                    v-for="(link, index) in rooms.meta.links.slice(1, -1)"
-                    :key="index"
+    <div class="p-6">
+        <!-- Thanh tìm kiếm và nút Thêm Phòng -->
+        <div class="mb-6 flex items-center justify-between">
+            <div class="relative w-full max-w-sm items-center">
+                <Input
+                    id="search"
+                    v-model="searchQuery"
+                    type="text"
+                    placeholder="Tìm phòng theo tên..."
+                    class="pl-10"
+                />
+                <span
+                    class="absolute inset-y-0 start-0 flex items-center justify-center px-2"
                 >
-                    <PaginationListItem v-if="link.url" as-child>
-                        <Link :href="link.url" preserve-scroll>
-                            <Button
-                                class="h-10 w-10 p-0"
-                                :variant="link.active ? 'default' : 'outline'"
-                                v-html="link.label"
-                            />
-                        </Link>
-                    </PaginationListItem>
+                    <Search class="size-6 text-muted-foreground" />
+                </span>
+            </div>
 
-                    <PaginationEllipsis v-else :key="`ellipsis-${index}`" />
-                </template>
+            <!--* Form thêm mới phòng -->
+            <Dialog v-model:open="isDialogOpen">
+                <DialogTrigger as-child>
+                    <Button
+                        class="bg-blue-500 text-white hover:bg-blue-600"
+                        @click="isDialogOpen = true"
+                    >
+                        Thêm Phòng
+                    </Button>
+                </DialogTrigger>
+                <DialogContent class="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Thêm Phòng Mới</DialogTitle>
+                        <DialogDescription>
+                            Nhập thông tin phòng mới vào form bên dưới và nhấn
+                            Lưu khi hoàn tất.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                <Link :href="rooms.links.next" preserve-scroll>
-                    <PaginationNext />
-                </Link>
-                <Link :href="rooms.links.last" preserve-scroll>
-                    <PaginationLast />
-                </Link>
-            </PaginationList>
-        </Pagination>
+                    <form
+                        id="dialogForm"
+                        @submit.prevent="onSubmit"
+                        class="space-y-4"
+                    >
+                        <FormField
+                            v-slot="{ componentField }"
+                            name="name"
+                            :validate-on-blur="!isFieldDirty"
+                        >
+                            <FormItem>
+                                <FormLabel>Tên Phòng</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="text"
+                                        placeholder="Nhập tên phòng..."
+                                        v-bind="componentField"
+                                    />
+                                </FormControl>
+                                <FormDescription>
+                                    Đây là tên hiển thị của phòng trong hệ
+                                    thống.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        </FormField>
+                        <FormField
+                            v-slot="{ componentField }"
+                            name="grid_rows"
+                            :validate-on-blur="!isFieldDirty"
+                        >
+                            <FormItem>
+                                <FormLabel>Số hàng</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        placeholder="Nhập số hàng..."
+                                        v-bind="componentField"
+                                    />
+                                </FormControl>
+                                <FormDescription>
+                                    Số hàng trong sơ đồ bố trí máy tính của
+                                    phòng.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        </FormField>
+                        <FormField
+                            v-slot="{ componentField }"
+                            name="grid_cols"
+                            :validate-on-blur="!isFieldDirty"
+                        >
+                            <FormItem>
+                                <FormLabel>Số cột</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        placeholder="Nhập số cột..."
+                                        v-bind="componentField"
+                                    />
+                                </FormControl>
+                                <FormDescription>
+                                    Số cột trong sơ đồ bố trí máy tính của
+                                    phòng.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        </FormField>
+                    </form>
+
+                    <DialogFooter>
+                        <Button type="submit" form="dialogForm">Lưu</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+
+        <!-- Danh sách phòng dạng Grid -->
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <!-- TODO: Chuyển đến trang chi tiết phòng -->
+            <RoomCard
+                v-for="room in filteredRooms"
+                :key="room.id"
+                :room="room"
+                @view="viewRoomDetails(room.id)"
+                @edit="editRoom(room)"
+                @delete="deleteRoom(room.id)"
+            />
+        </div>
+
+        <!-- Show a message when no rooms match the search -->
+        <div
+            v-if="filteredRooms.length === 0"
+            class="mt-8 text-center text-gray-500"
+        >
+            Không tìm thấy phòng nào phù hợp với từ khóa tìm kiếm
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Button } from '@/Components/ui/button';
 import {
-    Pagination,
-    PaginationEllipsis,
-    PaginationFirst,
-    PaginationLast,
-    PaginationList,
-    PaginationListItem,
-    PaginationNext,
-    PaginationPrev,
-} from '@/Components/ui/pagination';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/Components/ui/dialog';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/Components/ui/table';
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/Components/ui/form';
+
+import { Input } from '@/Components/ui/input';
+import { toast } from '@/Components/ui/toast';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Link } from '@inertiajs/vue3';
-import { Search } from 'lucide-vue-next';
-
-import type { Room } from '@/types';
 import { router } from '@inertiajs/vue3';
-import { watchDebounced } from '@vueuse/core';
+import { toTypedSchema } from '@vee-validate/zod';
+import { Search } from 'lucide-vue-next';
+import { useForm } from 'vee-validate';
+import { computed, h, ref } from 'vue';
+import * as z from 'zod';
+import RoomCard from './Components/RoomCard.vue';
 
-interface RoomsData {
-    total: number;
-    current_page: number;
-    first_page_url: string;
-    prev_page_url: string;
-    next_page_url: string;
-    last_page_url: string;
-    data: Room[];
-    links: Array<{
-        url: string | null;
-        label: string;
-        active?: boolean;
-    }>;
-}
-
-const props = defineProps<{
-    rooms: RoomsData;
-    filters: Object;
-}>();
-
-const searchModel = defineModel<string>('searchModel', { default: '' });
-searchModel.value = props.filters.search;
-watchDebounced(
-    searchModel,
-    (searchValue) => {
-        router.get(
-            route('rooms.index'),
-            {
-                search: searchValue,
-            },
-            {
-                preserveState: true,
-                replace: true,
-            },
-        );
-    },
-    {
-        debounce: 300,
-    },
+const formSchema = toTypedSchema(
+    z.object({
+        name: z
+            .string()
+            .min(2, 'Tên phòng phải có ít nhất 2 ký tự')
+            .max(50, 'Tên phòng không được quá 50 ký tự'),
+        grid_rows: z
+            .number()
+            .int()
+            .min(1, 'Số hàng phải lớn hơn 0')
+            .max(20, 'Số hàng không được vượt quá 20'),
+        grid_cols: z
+            .number()
+            .int()
+            .min(1, 'Số cột phải lớn hơn 0')
+            .max(20, 'Số cột không được vượt quá 20'),
+    }),
 );
+
+const { isFieldDirty, handleSubmit } = useForm({
+    validationSchema: formSchema,
+    initialValues: {
+        name: '',
+        grid_rows: 5,
+        grid_cols: 5,
+    },
+});
+
+const isDialogOpen = ref(false);
+
+const onSubmit = handleSubmit((values) => {
+    toast({
+        title: 'You submitted the following values:',
+        description: h(
+            'pre',
+            { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' },
+            h('code', { class: 'text-white' }, JSON.stringify(values, null, 2)),
+        ),
+    });
+    router.post(route('rooms.store'), values, {
+        onSuccess: () => {
+            isDialogOpen.value = false;
+        },
+    });
+});
+
+// State dùng cho tìm kiếm, modal và form
+const searchQuery = ref('');
+
+const props = defineProps({
+    rooms: { type: Object, required: true },
+});
 
 defineOptions({
     layout: AuthenticatedLayout,
 });
+
+// Computed property lọc danh sách phòng theo từ khóa
+const filteredRooms = computed(() => {
+    if (!searchQuery.value) return props.rooms;
+    return props.rooms.filter((room) =>
+        room.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
+    );
+});
+
+// Functions for action buttons
+const viewRoomDetails = (roomId) => {
+    // Navigate to room detail page
+    console.log(`View room ${roomId}`);
+    // router.push({ name: 'room.show', params: { id: roomId }});
+};
+
+const editRoom = (room) => {
+    console.log(`Edit room ${room.id}`);
+    // Implementation for edit functionality
+};
+
+const deleteRoom = (roomId) => {
+    console.log(`Delete room ${roomId}`);
+    // Implementation for delete functionality
+    // Consider adding a confirmation dialog here
+};
 </script>
+
+<style scoped>
+/* Bạn có thể tuỳ chỉnh thêm CSS theo phong cách của dự án */
+</style>

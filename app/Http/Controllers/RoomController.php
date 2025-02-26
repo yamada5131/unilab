@@ -2,51 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\RoomCollection;
 use App\Http\Resources\RoomResource;
 use App\Models\Room;
 use Illuminate\Http\Request as HttpRequest;
-use Illuminate\Support\Facades\Request as FacadesRequest;
 use Inertia\Inertia;
 
 class RoomController extends Controller
 {
     public function index()
     {
-        // Render the Room/Index page using Inertia
         return Inertia::render('Room/Index', [
-            // 'rooms' contains a paginated list of rooms filtered by search input if provided
-            'rooms' => new RoomCollection(
-                Room::query()
-                    // Check if a search query is present in the request, and if so, add a "where" filter on the "name" field
-                    ->when(FacadesRequest::input('search'), function ($query, $search) {
-                        $query->where('name', 'like', "%{$search}%");
-                    })
-                    // Paginate the results, showing 10 rooms per page
-                    ->paginate(10)
-                    // Append the current query string parameters to the pagination links
-                    ->withQueryString()),
-
-            // 'filters' holds the current search filters to maintain state in the UI
-            'filters' => FacadesRequest::only(['search']),
+            'rooms' => Room::all()->map(function ($room) {
+                return [
+                    'id' => $room->id,
+                    'name' => $room->name,
+                    'grid_rows' => $room->grid_rows,
+                    'grid_cols' => $room->grid_cols,
+                ];
+            }),
         ]);
     }
 
-    public function getRooms()
+    public function store(HttpRequest $request)
     {
-        $rooms = Room::all(); // Fetch all rooms
-
-        return response()->json($rooms);
-    }
-
-    public function store(HttpRequest $request): \Illuminate\Http\RedirectResponse
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'capacity' => 'required|integer',
-        ]);
-
-        Room::create($validated);
+        Room::create($request->validate([
+            'name' => 'required|string|max:50',
+            'grid_rows' => 'required|integer',
+            'grid_cols' => 'required|integer',
+        ]));
 
         return to_route('rooms.index');
     }
