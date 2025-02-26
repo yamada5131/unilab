@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\RoomResource;
 use App\Models\Room;
 use Illuminate\Http\Request as HttpRequest;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class RoomController extends Controller
 {
@@ -55,12 +55,8 @@ class RoomController extends Controller
         return to_route('rooms.index');
     }
 
-    public function show(Room $room): \Inertia\Response
+    public function show(string $id): Response
     {
-        $room->load('computers');
-
-        return Inertia::render('Room/Show', [
-            'room' => RoomResource::make($room),
-        ]);
+        return Inertia::render('Room/Show');
     }
 }

@@ -29,7 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::resource('rooms', RoomController::class)->only(['index', 'store']);
+    Route::resource('rooms', RoomController::class)->only(['index', 'store', 'show']);
 
     Route::post('/computers/{id}/command', [ComputerController::class, 'sendCommand'])->name('computers.command');
 

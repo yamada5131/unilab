@@ -12,7 +12,9 @@
         <CardContent>
             <p>Thông tin chi tiết phòng sẽ hiển thị tại đây.</p>
         </CardContent>
-        <CardFooter class="flex justify-end space-x-2 px-6 pb-6">
+        <CardFooter
+            class="flex flex-col justify-end gap-2 px-6 pb-6 sm:flex-row sm:gap-x-2"
+        >
             <Button
                 @click.stop="$emit('view')"
                 class="bg-blue-500 text-white hover:bg-blue-600"
