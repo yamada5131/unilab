@@ -90,47 +90,91 @@ const onSubmit = handleSubmit((values) => {
     );
 });
 
-// define seat arrays using refs
-const leftseats = computed(() => props.room.computers?.slice(0, 24) || []);
-const rightseats = computed(() => props.room.computers?.slice(24, 48) || []);
+// Create grid representation
+const gridCells = computed(() => {
+    const cells = [];
+
+    for (let row = 1; row <= props.room.grid_rows; row++) {
+        const rowCells = [];
+        for (let col = 1; col <= props.room.grid_cols; col++) {
+            // Find if a computer exists at this position
+            const computer = props.room.computers.find(
+                (c) => c.pos_row === row && c.pos_col === col,
+            );
+
+            rowCells.push({
+                row,
+                col,
+                computer,
+                index: (row - 1) * props.room.grid_cols + col,
+            });
+        }
+        cells.push(rowCells);
+    }
+
+    return cells;
+});
+
+const handleAddComputer = (row: number, col: number) => {
+    toast({
+        title: 'Add Computer',
+        description: `Add a new computer at position (${row}, ${col})`,
+    });
+    // Here you would normally open a modal to add a new computer
+    // and then update the data accordingly
+};
 </script>
 
 <template>
-    <div class="relative flex min-h-[calc(100vh-5rem)] overflow-hidden">
+    <!-- min-h-[calc(100vh-5rem)]  -->
+    <div class="relative flex h-full overflow-hidden p-4">
         <div
             :class="[
-                'grid grid-cols-2 place-items-center transition-all duration-700',
+                'transition-all duration-700',
                 selectedComputers.length > 0 ? 'w-3/4' : 'w-full',
             ]"
         >
-            <!-- row 1 -->
-            <div class="grid grid-cols-4 grid-rows-6 place-items-center gap-4">
-                <ComputerItem
-                    v-for="(computer, index) in leftseats"
-                    :index="index + 1"
-                    :key="computer.id"
-                    :computer="computer"
-                    :isSelected="selectedComputers.includes(computer.id)"
-                    @click="handleClick(computer.id, $event)"
-                />
-            </div>
+            <!-- Dynamic grid based on room dimensions -->
+            <div class="flex h-full items-center justify-center">
+                <div
+                    class="grid grid-flow-row auto-rows-min gap-5"
+                    :style="{
+                        // gridTemplateRows: `repeat(${room.grid_rows}, minmax(0, 1fr))`,
+                        gridTemplateColumns: `repeat(${room.grid_cols}, min-content)`,
+                    }"
+                >
+                    <template v-for="row in gridCells" :key="row[0].row">
+                        <template v-for="cell in row" :key="cell.index">
+                            <!-- If computer exists at this position -->
+                            <ComputerItem
+                                v-if="cell.computer"
+                                :key="`computer-${cell.row}-${cell.col}`"
+                                :index="cell.index"
+                                :computer="cell.computer"
+                                :isSelected="
+                                    selectedComputers.includes(cell.computer.id)
+                                "
+                                @click="handleClick(cell.computer.id, $event)"
+                            />
 
-            <!-- row 2 -->
-            <div class="grid grid-cols-4 grid-rows-6 place-items-center gap-4">
-                <ComputerItem
-                    v-for="(computer, index) in rightseats"
-                    :key="computer.id"
-                    :index="index + 25"
-                    :computer="computer"
-                    :isSelected="selectedComputers.includes(computer.id)"
-                    @click="handleClick(computer.id, $event)"
-                />
+                            <!-- Empty slot with + sign -->
+                            <div
+                                v-else
+                                :key="`empty-${cell.row}-${cell.col}`"
+                                class="flex h-14 w-14 cursor-pointer select-none items-center justify-center rounded border-2 border-dashed border-gray-300 text-2xl text-gray-400 hover:border-gray-500 hover:text-gray-600"
+                                @click="handleAddComputer(cell.row, cell.col)"
+                            >
+                                +
+                            </div>
+                        </template>
+                    </template>
+                </div>
             </div>
         </div>
         <div
             :class="[
-                'bg-white-200 absolute right-0 top-0 h-full w-1/4 border-l-2',
-                'max-h-[calc(100vh-5rem)] overflow-y-auto',
+                'absolute right-0 top-0 h-full w-1/4 rounded-r-xl border-l-2 border-l-black bg-gray-300',
+                'max-h-[100vh] overflow-y-auto',
                 'transform',
                 // Use different transition timings based on panel state
                 selectedComputers.length > 0
@@ -146,7 +190,9 @@ const rightseats = computed(() => props.room.computers?.slice(24, 48) || []);
                         Thông tin máy
                     </h2>
                     <p><strong>Máy:</strong> {{ selectedComputer?.name }}</p>
-                    <p><strong>IP:</strong> 192.168.1.1</p>
+                    <p>
+                        <strong>IP:</strong> {{ selectedComputer?.ip_address }}
+                    </p>
                     <p>
                         <strong>Trạng thái:</strong>
                         {{ selectedComputer?.status }}

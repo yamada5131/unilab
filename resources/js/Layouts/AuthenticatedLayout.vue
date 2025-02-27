@@ -59,7 +59,7 @@ import AppSidebar from './Components/AppSidebar.vue';
                 <div
                     class="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min"
                 >
-                    <main>
+                    <main class="h-full">
                         <slot />
                     </main>
                 </div>

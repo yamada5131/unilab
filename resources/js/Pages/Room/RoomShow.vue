@@ -9,10 +9,7 @@
                 <div class="aspect-video rounded-xl bg-muted/50" />
             </div>
         </template>
-        <div class="p-4">
-            <!-- Grid Layout -->
-            <ComputerList :room="enhancedRoom" />
-        </div>
+        <ComputerList :room="enhancedRoom" />
     </AuthenticatedLayout>
 </template>
 
@@ -21,12 +18,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { computed, ref } from 'vue';
 import ComputerList from './Components/Computers/ComputerList.vue';
 
-// Dummy data
-const room = ref({
-    id: 'room-1',
-    name: 'Lab 1',
-    grid_rows: 5,
-    grid_cols: 5,
+const props = defineProps({
+    room: Room,
 });
 
 const computers = ref([
@@ -96,69 +89,4 @@ const enhancedRoom = computed(() => ({
         last_seen: computer.last_seen,
     })),
 }));
-
-// Modal state
-const showModal = ref(false);
-const selectedPosition = ref({ row: null, col: null });
-const newComputer = ref({
-    name: '',
-    specs: '',
-});
-
-// Computed
-const gridStyle = computed(() => ({
-    gridTemplateColumns: `repeat(${room.value.grid_cols}, minmax(0, 1fr))`,
-    gridTemplateRows: `repeat(${room.value.grid_rows}, minmax(0, 1fr))`,
-}));
-
-const gridSlots = computed(() => {
-    const slots = [];
-    for (let row = 1; row <= room.value.grid_rows; row++) {
-        for (let col = 1; col <= room.value.grid_cols; col++) {
-            const computer = computers.value.find(
-                (c) => c.grid_row === row && c.grid_col === col,
-            );
-            slots.push({ row, col, computer });
-        }
-    }
-    return slots;
-});
-
-// Methods
-const openAddComputerModal = (row, col) => {
-    selectedPosition.value = { row, col };
-    showModal.value = true;
-};
-
-const closeModal = () => {
-    showModal.value = false;
-    newComputer.value = { name: '', specs: '' };
-};
-
-const handleAddComputer = () => {
-    computers.value.push({
-        id: `pc-${computers.value.length + 1}`,
-        name: newComputer.value.name,
-        specs: newComputer.value.specs,
-        grid_row: selectedPosition.value.row,
-        grid_col: selectedPosition.value.col,
-    });
-    closeModal();
-};
-
-const handleComputerAction = (computer, action) => {
-    switch (action) {
-        case 'powerOn':
-            console.log('Powering on:', computer.name);
-            break;
-        case 'remoteAccess':
-            console.log('Remote access to:', computer.name);
-            break;
-        case 'remove':
-            computers.value = computers.value.filter(
-                (c) => c.id !== computer.id,
-            );
-            break;
-    }
-};
 </script>

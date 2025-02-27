@@ -10,7 +10,7 @@ const props = defineProps<{
 <template>
     <div
         :class="[
-            'flex h-4 w-4 cursor-pointer select-none items-center justify-center rounded bg-gray-200 p-5 text-center font-semibold transition-transform hover:scale-105',
+            'flex h-14 w-14 cursor-pointer select-none items-center justify-center rounded bg-gray-200 text-center font-semibold transition-transform hover:scale-105',
             props.computer.status === 'on' && 'border-4 border-green-500',
             props.computer.status === 'off' && 'border-4 border-red-500',
             props.computer.status === 'standby' && 'border-4 border-yellow-500',
