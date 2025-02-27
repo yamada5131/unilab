@@ -11,7 +11,7 @@ class RoomController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Room/Index', [
+        return Inertia::render('Room/RoomIndex', [
             'rooms' => Room::all()->map(function ($room) {
                 return [
                     'id' => $room->id,
@@ -57,6 +57,6 @@ class RoomController extends Controller
 
     public function show(string $id): Response
     {
-        return Inertia::render('Room/Show');
+        return Inertia::render('Room/RoomShow');
     }
 }

@@ -10,9 +10,9 @@ import {
 } from '@/Components/ui/form';
 import { Textarea } from '@/Components/ui/textarea';
 import { useToast } from '@/Components/ui/toast/use-toast';
-import Computer from '@/Pages/Computer/Computer.vue';
 import { Room } from '@/types';
 import { Link } from '@inertiajs/vue3';
+import ComputerItem from './ComputerItem.vue';
 
 const { toast } = useToast();
 
@@ -105,7 +105,7 @@ const rightseats = computed(() => props.room.computers?.slice(24, 48) || []);
         >
             <!-- row 1 -->
             <div class="grid grid-cols-4 grid-rows-6 place-items-center gap-4">
-                <Computer
+                <ComputerItem
                     v-for="(computer, index) in leftseats"
                     :index="index + 1"
                     :key="computer.id"
@@ -117,7 +117,7 @@ const rightseats = computed(() => props.room.computers?.slice(24, 48) || []);
 
             <!-- row 2 -->
             <div class="grid grid-cols-4 grid-rows-6 place-items-center gap-4">
-                <Computer
+                <ComputerItem
                     v-for="(computer, index) in rightseats"
                     :key="computer.id"
                     :index="index + 25"
