@@ -1,7 +1,8 @@
 <template>
     <div class="p-6">
-        <!-- Thanh tìm kiếm và nút Thêm Phòng -->
+        <!--* Thanh tìm kiếm và nút Thêm Phòng -->
         <div class="mb-6 flex items-center justify-between">
+            <!--* Search input -->
             <div class="relative w-full max-w-sm items-center">
                 <Input
                     id="search"
@@ -18,99 +19,21 @@
             </div>
 
             <!--* Form thêm mới phòng -->
-            <Dialog v-model:open="isDialogOpen">
-                <DialogTrigger as-child>
-                    <Button
-                        class="bg-blue-500 text-white hover:bg-blue-600"
-                        @click="isDialogOpen = true"
-                    >
-                        Thêm Phòng
-                    </Button>
-                </DialogTrigger>
-                <DialogContent class="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>Thêm Phòng Mới</DialogTitle>
-                        <DialogDescription>
-                            Nhập thông tin phòng mới vào form bên dưới và nhấn
-                            Lưu khi hoàn tất.
-                        </DialogDescription>
-                    </DialogHeader>
+            <Button
+                class="bg-blue-500 text-white hover:bg-blue-600"
+                @click="isCreateDialogOpen = true"
+            >
+                Thêm Phòng
+            </Button>
 
-                    <form
-                        id="dialogForm"
-                        @submit.prevent="onSubmit"
-                        class="space-y-4"
-                    >
-                        <FormField
-                            v-slot="{ componentField }"
-                            name="name"
-                            :validate-on-blur="!isFieldDirty"
-                        >
-                            <FormItem>
-                                <FormLabel>Tên Phòng</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        type="text"
-                                        placeholder="Nhập tên phòng..."
-                                        v-bind="componentField"
-                                    />
-                                </FormControl>
-                                <FormDescription>
-                                    Đây là tên hiển thị của phòng trong hệ
-                                    thống.
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        </FormField>
-                        <FormField
-                            v-slot="{ componentField }"
-                            name="grid_rows"
-                            :validate-on-blur="!isFieldDirty"
-                        >
-                            <FormItem>
-                                <FormLabel>Số hàng</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        type="number"
-                                        placeholder="Nhập số hàng..."
-                                        v-bind="componentField"
-                                    />
-                                </FormControl>
-                                <FormDescription>
-                                    Số hàng trong sơ đồ bố trí máy tính của
-                                    phòng.
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        </FormField>
-                        <FormField
-                            v-slot="{ componentField }"
-                            name="grid_cols"
-                            :validate-on-blur="!isFieldDirty"
-                        >
-                            <FormItem>
-                                <FormLabel>Số cột</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        type="number"
-                                        placeholder="Nhập số cột..."
-                                        v-bind="componentField"
-                                    />
-                                </FormControl>
-                                <FormDescription>
-                                    Số cột trong sơ đồ bố trí máy tính của
-                                    phòng.
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        </FormField>
-                    </form>
-
-                    <DialogFooter>
-                        <Button type="submit" form="dialogForm">Lưu</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <RoomDialog
+                form-id="createRoomForm"
+                :is-open="isCreateDialogOpen"
+                :is-edit="false"
+                @close="isCreateDialogOpen = false"
+                @update:is-open="isCreateDialogOpen = $event"
+                @submit="handleCreateSubmit"
+            />
         </div>
 
         <!-- Danh sách phòng dạng Grid -->
@@ -138,66 +61,30 @@
 
 <script setup lang="ts">
 import { Button } from '@/Components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/Components/ui/dialog';
-import {
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/Components/ui/form';
-
 import { Input } from '@/Components/ui/input';
 import { toast } from '@/Components/ui/toast';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Room } from '@/types';
 import { router } from '@inertiajs/vue3';
-import { toTypedSchema } from '@vee-validate/zod';
 import { Search } from 'lucide-vue-next';
-import { useForm } from 'vee-validate';
 import { computed, h, ref } from 'vue';
-import * as z from 'zod';
 import RoomCard from './Components/RoomCard.vue';
+import RoomDialog from './Components/RoomDialog.vue';
 
-const formSchema = toTypedSchema(
-    z.object({
-        name: z
-            .string()
-            .min(2, 'Tên phòng phải có ít nhất 2 ký tự')
-            .max(50, 'Tên phòng không được quá 50 ký tự'),
-        grid_rows: z
-            .number()
-            .int()
-            .min(1, 'Số hàng phải lớn hơn 0')
-            .max(20, 'Số hàng không được vượt quá 20'),
-        grid_cols: z
-            .number()
-            .int()
-            .min(1, 'Số cột phải lớn hơn 0')
-            .max(20, 'Số cột không được vượt quá 20'),
-    }),
-);
+const isCreateDialogOpen = ref(false);
 
-const { isFieldDirty, handleSubmit } = useForm({
-    validationSchema: formSchema,
-    initialValues: {
-        name: '',
-        grid_rows: 5,
-        grid_cols: 5,
-    },
+// State dùng cho tìm kiếm, modal và form
+const searchQuery = ref<string>('');
+
+const props = defineProps<{
+    rooms: { data: Room[] };
+}>();
+
+defineOptions({
+    layout: AuthenticatedLayout,
 });
 
-const isDialogOpen = ref(false);
-
-const onSubmit = handleSubmit((values) => {
+const handleCreateSubmit = (values) => {
     toast({
         title: 'You submitted the following values:',
         description: h(
@@ -206,37 +93,21 @@ const onSubmit = handleSubmit((values) => {
             h('code', { class: 'text-white' }, JSON.stringify(values, null, 2)),
         ),
     });
+
     router.post(route('rooms.store'), values, {
         onSuccess: () => {
-            isDialogOpen.value = false;
+            isCreateDialogOpen.value = false;
+            toast({
+                title: 'Thành công',
+                description: 'Phòng đã được tạo mới',
+            });
         },
     });
-});
-
-// State dùng cho tìm kiếm, modal và form
-const searchQuery = ref('');
-
-const props = defineProps({
-    rooms: { type: Object, required: true },
-});
-
-defineOptions({
-    layout: AuthenticatedLayout,
-});
-
-// Computed property lọc danh sách phòng theo từ khóa
-const filteredRooms = computed(() => {
-    if (!searchQuery.value) return props.rooms;
-    return props.rooms.filter((room) =>
-        room.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
-    );
-});
+};
 
 // Functions for action buttons
 const viewRoomDetails = (roomId) => {
-    // Navigate to room detail page
-    console.log(`View room ${roomId}`);
-    // router.push({ name: 'room.show', params: { id: roomId }});
+    router.get(route('rooms.show', roomId));
 };
 
 const editRoom = (room) => {
@@ -245,10 +116,16 @@ const editRoom = (room) => {
 };
 
 const deleteRoom = (roomId) => {
-    console.log(`Delete room ${roomId}`);
-    // Implementation for delete functionality
-    // Consider adding a confirmation dialog here
+    router.delete(route('rooms.destroy', roomId));
 };
+
+// Computed property lọc danh sách phòng theo từ khóa
+const filteredRooms = computed(() => {
+    if (!searchQuery.value) return props.rooms.data;
+    return props.rooms.data.filter((room) =>
+        room.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
+    );
+});
 </script>
 
 <style scoped>

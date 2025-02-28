@@ -17,9 +17,9 @@ class RoomResource extends JsonResource
         return [
             'id' => $this->resource->id,
             'name' => $this->resource->name,
-            'capacity' => $this->resource->capacity,
-            'status' => $this->resource->status,
-            'computers' => ComputerResource::collection($this->whenLoaded('computers')),
+            'grid_rows' => $this->resource->grid_rows,
+            'grid_cols' => $this->resource->grid_cols,
+            'machines' => MachineResource::collection($this->whenLoaded('machines')),
         ];
     }
 }

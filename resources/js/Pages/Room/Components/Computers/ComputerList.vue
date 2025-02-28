@@ -12,13 +12,14 @@ import { Textarea } from '@/Components/ui/textarea';
 import { useToast } from '@/Components/ui/toast/use-toast';
 import { Room } from '@/types';
 import { Link } from '@inertiajs/vue3';
+import ComputerDialog from './ComputerDialog.vue';
 import ComputerItem from './ComputerItem.vue';
 
 const { toast } = useToast();
 
 import { toTypedSchema } from '@vee-validate/zod';
 import { useForm } from 'vee-validate';
-import { computed, h, reactive } from 'vue';
+import { computed, h, reactive, ref } from 'vue';
 import * as z from 'zod';
 
 const formSchema = toTypedSchema(
@@ -68,7 +69,7 @@ const handleClick = (id: string, event: MouseEvent) => {
 
 const selectedComputer = computed(() => {
     if (selectedComputers.length === 1) {
-        return props.room.computers.find((c) => c.id === selectedComputers[0]);
+        return props.room.machines.find((c) => c.id === selectedComputers[0]);
     }
     return null;
 });
@@ -98,7 +99,7 @@ const gridCells = computed(() => {
         const rowCells = [];
         for (let col = 1; col <= props.room.grid_cols; col++) {
             // Find if a computer exists at this position
-            const computer = props.room.computers.find(
+            const computer = props.room.machines.find(
                 (c) => c.pos_row === row && c.pos_col === col,
             );
 
@@ -115,13 +116,37 @@ const gridCells = computed(() => {
     return cells;
 });
 
+// Add computer dialog state
+const isComputerDialogOpen = ref(false);
+const selectedPosition = ref({ row: 1, col: 1 });
+const computerDialogFormId = 'add-computer-form';
+
 const handleAddComputer = (row: number, col: number) => {
-    toast({
-        title: 'Add Computer',
-        description: `Add a new computer at position (${row}, ${col})`,
+    selectedPosition.value = { row, col };
+    isComputerDialogOpen.value = true;
+};
+
+const handleComputerSubmit = (data: any) => {
+    router.post(route('computers.store'), data, {
+        onSuccess: () => {
+            isComputerDialogOpen.value = false;
+            toast({
+                title: 'Máy tính đã được thêm',
+                description: `Máy ${data.name} đã được thêm thành công vào vị trí (${data.pos_row}, ${data.pos_col})`,
+            });
+        },
+        onError: (errors) => {
+            toast({
+                title: 'Lỗi khi thêm máy tính',
+                description: Object.values(errors).join(', '),
+                variant: 'destructive',
+            });
+        },
     });
-    // Here you would normally open a modal to add a new computer
-    // and then update the data accordingly
+};
+
+const closeComputerDialog = () => {
+    isComputerDialogOpen.value = false;
 };
 </script>
 
@@ -150,7 +175,7 @@ const handleAddComputer = (row: number, col: number) => {
                                 v-if="cell.computer"
                                 :key="`computer-${cell.row}-${cell.col}`"
                                 :index="cell.index"
-                                :computer="cell.computer"
+                                :machine="cell.computer"
                                 :isSelected="
                                     selectedComputers.includes(cell.computer.id)
                                 "
@@ -308,6 +333,17 @@ const handleAddComputer = (row: number, col: number) => {
                 </div>
             </div>
         </div>
+
+        <!-- Add Computer Dialog -->
+        <ComputerDialog
+            :form-id="computerDialogFormId"
+            :is-open="isComputerDialogOpen"
+            :position="selectedPosition"
+            :room-id="room.id"
+            @update:is-open="isComputerDialogOpen = $event"
+            @submit="handleComputerSubmit"
+            @close="closeComputerDialog"
+        />
     </div>
 </template>
 

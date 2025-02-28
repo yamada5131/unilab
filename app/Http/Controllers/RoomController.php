@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\RoomResource;
 use App\Models\Room;
 use Illuminate\Http\Request as HttpRequest;
 use Inertia\Inertia;
@@ -12,14 +13,7 @@ class RoomController extends Controller
     public function index()
     {
         return Inertia::render('Room/RoomIndex', [
-            'rooms' => Room::all()->map(function ($room) {
-                return [
-                    'id' => $room->id,
-                    'name' => $room->name,
-                    'grid_rows' => $room->grid_rows,
-                    'grid_cols' => $room->grid_cols,
-                ];
-            }),
+            'rooms' => RoomResource::collection(Room::all()),
         ]);
     }
 
@@ -34,29 +28,34 @@ class RoomController extends Controller
         return to_route('rooms.index');
     }
 
-    public function update(HttpRequest $request, $id)
-    {
-        $room = Room::findOrFail($id);
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'capacity' => 'required|integer',
-        ]);
-
-        $room->update($validated);
-
-        return to_route('rooms.index');
-    }
-
-    public function destroy($id)
-    {
-        $room = Room::findOrFail($id);
-        $room->delete();
-
-        return to_route('rooms.index');
-    }
-
     public function show(string $id): Response
     {
-        return Inertia::render('Room/RoomShow');
+        return Inertia::render('Room/RoomShow',
+            [
+                'room' => RoomResource::make(
+                    Room::findOrFail($id)->load('machines')
+                ),
+            ]
+        );
+    }
+
+    public function update(HttpRequest $request, string $id)
+    {
+        Room::findOrFail($id)->update((
+            $request->validate([
+                'name' => 'required|string|max:50',
+                'grid_rows' => 'required|integer',
+                'grid_cols' => 'required|integer',
+            ])
+        ));
+
+        return to_route('rooms.index');
+    }
+
+    public function destroy(string $id)
+    {
+        Room::findOrFail($id)->delete();
+
+        return to_route('rooms.index');
     }
 }

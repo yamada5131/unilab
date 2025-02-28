@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('machines', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('room_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->string('name');
             $table->macAddress('mac_address')->unique();
             $table->ipAddress('ip_address');
             $table->integer('pos_row');

@@ -39,14 +39,15 @@ class Room extends Model
     use HasFactory;
     use HasUuids;
 
-    protected $fillable = [
-        'name',
-        'grid_rows',
-        'grid_cols',
-    ];
+    /**
+     * The attributes that aren't mass assignable.
+     *
+     * @var array<string>|bool
+     */
+    protected $guarded = [];
 
-    public function computers(): HasMany
+    public function machines(): HasMany
     {
-        return $this->hasMany(Computer::class);
+        return $this->hasMany(Machine::class);
     }
 }

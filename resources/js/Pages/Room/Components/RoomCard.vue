@@ -15,15 +15,14 @@
         <CardFooter
             class="flex flex-col justify-end gap-2 px-6 pb-6 sm:flex-row sm:gap-x-2"
         >
-            <Button
-                @click.stop="$emit('view')"
-                class="bg-blue-500 text-white hover:bg-blue-600"
-            >
-                Xem Chi Tiết
-            </Button>
+            <Link :href="route('rooms.show', room.id)">
+                <Button class="w-full bg-blue-500 text-white hover:bg-blue-600">
+                    Xem Chi Tiết
+                </Button>
+            </Link>
             <Button
                 class="bg-yellow-500 text-white hover:bg-yellow-600"
-                @click.stop="$emit('edit')"
+                @click.stop="isEditDialogOpen = true"
             >
                 Chỉnh sửa
             </Button>
@@ -32,9 +31,20 @@
             </Button>
         </CardFooter>
     </Card>
+
+    <!-- Edit Room Dialog -->
+    <RoomDialog
+        :form-id="`editRoomForm-${room.id}`"
+        :is-open="isEditDialogOpen"
+        :is-edit="true"
+        :room="room"
+        @close="isEditDialogOpen = false"
+        @update:is-open="isEditDialogOpen = $event"
+        @submit="handleEditSubmit"
+    />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Button } from '@/Components/ui/button';
 import {
     Card,
@@ -44,15 +54,45 @@ import {
     CardHeader,
     CardTitle,
 } from '@/Components/ui/card';
+import { toast } from '@/Components/ui/toast';
+import { Room } from '@/types';
+import { Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import RoomDialog from './RoomDialog.vue';
+
+// Dialog state
+const isEditDialogOpen = ref<boolean>(false);
 
 // Props definition
-defineProps({
-    room: {
-        type: Object,
-        required: true,
-    },
-});
+const props = defineProps<{
+    room: Room;
+}>();
 
 // Events emitted by this component
-defineEmits(['view', 'edit', 'delete']);
+const emit = defineEmits<{
+    view: [];
+    edit: [];
+    delete: [];
+}>();
+
+// Handle edit form submission
+const handleEditSubmit = (values) => {
+    router.put(route('rooms.update', props.room.id), values, {
+        onSuccess: () => {
+            isEditDialogOpen.value = false;
+            toast({
+                title: 'Thành công',
+                description: 'Thông tin phòng đã được cập nhật',
+            });
+            emit('edit');
+        },
+        onError: (errors) => {
+            toast({
+                title: 'Lỗi',
+                description: 'Có lỗi xảy ra khi cập nhật thông tin phòng',
+                variant: 'destructive',
+            });
+        },
+    });
+};
 </script>
