@@ -12,4 +12,6 @@ class Command extends Model
     use HasFactory;
 
     use HasUuids;
+
+    protected $guarded = [];
 }

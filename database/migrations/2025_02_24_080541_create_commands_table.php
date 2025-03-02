@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('commands', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('machine_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
-            $table->string('command_type');
+            $table->text('command_type');
             $table->jsonb('payload')->nullable();
             $table->enum('status', ['pending', 'in_progress', 'done', 'error'])->default('pending');
-            $table->timestampTz('completed_at');
+            $table->timestampTz('completed_at')->nullable();
             $table->timestampsTz();
         });
     }

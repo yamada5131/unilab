@@ -297,9 +297,20 @@ const closeComputerDialog = () => {
                                 Khởi động lại
                             </Link>
                         </Button>
-                        <Button as-child>
-                            <a href="#!">Tắt máy</a>
-                        </Button>
+                        <Link
+                            :href="
+                                route('commands.store', {
+                                    machine_id: selectedComputer?.id ?? '#',
+                                })
+                            "
+                            method="post"
+                            as="button"
+                            :data="{ command_type: 'SHUTDOWN' }"
+                        >
+                            <Button as-child>
+                                <a href="#!">Tắt máy</a>
+                            </Button>
+                        </Link>
                         <Button as-child>
                             <a href="#!">Khóa máy</a>
                         </Button>
