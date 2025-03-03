@@ -12,7 +12,7 @@ class RoomController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Room/RoomIndex', [
+        return Inertia::render('Room/Index', [
             'rooms' => RoomResource::collection(Room::all()),
         ]);
     }
@@ -30,7 +30,7 @@ class RoomController extends Controller
 
     public function show(string $id): Response
     {
-        return Inertia::render('Room/RoomShow',
+        return Inertia::render('Room/Show',
             [
                 'room' => RoomResource::make(
                     Room::findOrFail($id)->load('machines')

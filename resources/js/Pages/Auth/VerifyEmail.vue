@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
