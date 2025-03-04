@@ -38,11 +38,12 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-vue-next": "^0.469.0",
+        "pinia": "^3.0.1",
         "radix-vue": "^1.9.12",
-        "reka-ui": "^2.0.0",
+        "reka-ui": "^2.0.2",
         "tailwind-merge": "^2.6.0",
         "tailwindcss-animate": "^1.0.7",
         "vee-validate": "^4.15.0",
-        "zod": "^3.24.1"
+        "zod": "^3.24.2"
     }
 }

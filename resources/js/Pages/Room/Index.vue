@@ -38,7 +38,6 @@
 
         <!-- Danh sách phòng dạng Grid -->
         <div class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
-            <!-- TODO: Chuyển đến trang chi tiết phòng -->
             <RoomCard
                 v-for="room in filteredRooms"
                 :key="room.id"
@@ -62,7 +61,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from '@/components/ui/toast';
+import { useToast } from '@/components/ui/toast/use-toast';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { Room } from '@/types';
 import { router } from '@inertiajs/vue3';
@@ -70,6 +69,8 @@ import { Search } from 'lucide-vue-next';
 import { computed, h, ref } from 'vue';
 import RoomCard from './Partials/RoomCard.vue';
 import RoomDialog from './Partials/RoomDialog.vue';
+
+const { toast } = useToast();
 
 const isCreateDialogOpen = ref(false);
 
@@ -85,21 +86,20 @@ defineOptions({
 });
 
 const handleCreateSubmit = (values) => {
-    toast({
-        title: 'You submitted the following values:',
-        description: h(
-            'pre',
-            { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' },
-            h('code', { class: 'text-white' }, JSON.stringify(values, null, 2)),
-        ),
-    });
-
     router.post(route('rooms.store'), values, {
         onSuccess: () => {
             isCreateDialogOpen.value = false;
             toast({
-                title: 'Thành công',
-                description: 'Phòng đã được tạo mới',
+                title: 'You submitted the following values:',
+                description: h(
+                    'pre',
+                    { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' },
+                    h(
+                        'code',
+                        { class: 'text-white' },
+                        JSON.stringify(values, null, 2),
+                    ),
+                ),
             });
         },
     });

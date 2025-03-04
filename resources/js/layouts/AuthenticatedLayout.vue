@@ -19,10 +19,12 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
+import Toaster from '@/components/ui/toast/Toaster.vue';
 import AppSidebar from './app/AppSidebar.vue';
 </script>
 
 <template>
+    <Toaster />
     <SidebarProvider>
         <AppSidebar />
         <SidebarInset>

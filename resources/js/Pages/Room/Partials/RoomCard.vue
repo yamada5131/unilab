@@ -54,11 +54,13 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { toast } from '@/components/ui/toast';
+import { useToast } from '@/components/ui/toast/use-toast';
 import { Room } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import RoomDialog from './RoomDialog.vue';
+
+const { toast } = useToast();
 
 // Dialog state
 const isEditDialogOpen = ref<boolean>(false);
