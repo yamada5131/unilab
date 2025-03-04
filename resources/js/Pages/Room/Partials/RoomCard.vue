@@ -22,7 +22,7 @@
             </Link>
             <Button
                 class="bg-yellow-500 text-white hover:bg-yellow-600"
-                @click.stop="isEditDialogOpen = true"
+                @click.stop="openEditDialog"
             >
                 Chỉnh sửa
             </Button>
@@ -54,16 +54,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { useToast } from '@/components/ui/toast/use-toast';
+import { useRoomStore } from '@/stores/room';
 import { Room } from '@/types';
-import { Link, router } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import RoomDialog from './RoomDialog.vue';
-
-const { toast } = useToast();
-
-// Dialog state
-const isEditDialogOpen = ref<boolean>(false);
 
 // Props definition
 const props = defineProps<{
@@ -71,30 +66,25 @@ const props = defineProps<{
 }>();
 
 // Events emitted by this component
-const emit = defineEmits<{
+defineEmits<{
     view: [];
-    edit: [];
     delete: [];
 }>();
 
+// Local state for the edit dialog
+// We keep this local as it's specific to this card instance
+const isEditDialogOpen = ref<boolean>(false);
+
+const roomStore = useRoomStore();
+
+// Open the edit dialog
+const openEditDialog = () => {
+    isEditDialogOpen.value = true;
+};
+
 // Handle edit form submission
 const handleEditSubmit = (values) => {
-    router.put(route('rooms.update', props.room.id), values, {
-        onSuccess: () => {
-            isEditDialogOpen.value = false;
-            toast({
-                title: 'Thành công',
-                description: 'Thông tin phòng đã được cập nhật',
-            });
-            emit('edit');
-        },
-        onError: (errors) => {
-            toast({
-                title: 'Lỗi',
-                description: 'Có lỗi xảy ra khi cập nhật thông tin phòng',
-                variant: 'destructive',
-            });
-        },
-    });
+    roomStore.updateRoom(props.room.id, values);
+    isEditDialogOpen.value = false;
 };
 </script>

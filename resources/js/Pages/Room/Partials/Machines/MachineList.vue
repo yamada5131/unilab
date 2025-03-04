@@ -8,7 +8,7 @@ const { toast } = useToast();
 
 import { toTypedSchema } from '@vee-validate/zod';
 import { useForm } from 'vee-validate';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, h, reactive, ref, watch } from 'vue';
 import * as z from 'zod';
 
 const formSchema = toTypedSchema(
@@ -68,6 +68,30 @@ const handleClick = (id: string, event: MouseEvent) => {
         selectedComputers.push(id);
     }
 };
+
+const selectedComputer = computed(() => {
+    if (selectedComputers.length === 1) {
+        return props.room.machines.find((c) => c.id === selectedComputers[0]);
+    }
+    return null;
+});
+
+const onSubmit = handleSubmit((values) => {
+    toast({
+        title: 'You submitted the following values:',
+        description: h(
+            'pre',
+            { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' },
+            h('code', { class: 'text-white' }, JSON.stringify(values, null, 2)),
+        ),
+    });
+    router.post(
+        route('computers.command', {
+            id: selectedComputer.value?.id ?? '#',
+        }),
+        values,
+    );
+});
 
 // Create grid representation
 const gridCells = computed(() => {

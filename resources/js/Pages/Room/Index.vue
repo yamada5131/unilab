@@ -21,18 +21,18 @@
             <!--* Form thêm mới phòng -->
             <Button
                 class="bg-blue-500 text-white hover:bg-blue-600"
-                @click="isCreateDialogOpen = true"
+                @click="roomStore.openCreateDialog()"
             >
                 Thêm Phòng
             </Button>
 
             <RoomDialog
                 form-id="createRoomForm"
-                :is-open="isCreateDialogOpen"
+                :is-open="roomStore.isCreateDialogOpen"
                 :is-edit="false"
-                @close="isCreateDialogOpen = false"
-                @update:is-open="isCreateDialogOpen = $event"
-                @submit="handleCreateSubmit"
+                @close="roomStore.closeCreateDialog()"
+                @update:is-open="roomStore.isCreateDialogOpen = $event"
+                @submit="roomStore.createRoom"
             />
         </div>
 
@@ -43,8 +43,7 @@
                 :key="room.id"
                 :room="room"
                 @view="viewRoomDetails(room.id)"
-                @edit="editRoom(room)"
-                @delete="deleteRoom(room.id)"
+                @delete="roomStore.deleteRoom(room.id)"
             />
         </div>
 
@@ -61,20 +60,16 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/toast/use-toast';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
+import { useRoomStore } from '@/stores/room';
 import { Room } from '@/types';
 import { router } from '@inertiajs/vue3';
 import { Search } from 'lucide-vue-next';
-import { computed, h, ref } from 'vue';
+import { computed, ref } from 'vue';
 import RoomCard from './Partials/RoomCard.vue';
 import RoomDialog from './Partials/RoomDialog.vue';
 
-const { toast } = useToast();
-
-const isCreateDialogOpen = ref(false);
-
-// State dùng cho tìm kiếm, modal và form
+// State dùng cho tìm kiếm
 const searchQuery = ref<string>('');
 
 const props = defineProps<{
@@ -85,38 +80,11 @@ defineOptions({
     layout: AuthenticatedLayout,
 });
 
-const handleCreateSubmit = (values) => {
-    router.post(route('rooms.store'), values, {
-        onSuccess: () => {
-            isCreateDialogOpen.value = false;
-            toast({
-                title: 'You submitted the following values:',
-                description: h(
-                    'pre',
-                    { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' },
-                    h(
-                        'code',
-                        { class: 'text-white' },
-                        JSON.stringify(values, null, 2),
-                    ),
-                ),
-            });
-        },
-    });
-};
+const roomStore = useRoomStore();
 
-// Functions for action buttons
-const viewRoomDetails = (roomId) => {
+// Function for viewing room details
+const viewRoomDetails = (roomId: string) => {
     router.get(route('rooms.show', roomId));
-};
-
-const editRoom = (room) => {
-    console.log(`Edit room ${room.id}`);
-    // Implementation for edit functionality
-};
-
-const deleteRoom = (roomId) => {
-    router.delete(route('rooms.destroy', roomId));
 };
 
 // Computed property lọc danh sách phòng theo từ khóa

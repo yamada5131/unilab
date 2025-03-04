@@ -59,8 +59,7 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/toast/use-toast';
-import { router } from '@inertiajs/vue3';
+import { useMachineStore } from '@/stores/machine';
 import {
     ImageIcon,
     LockIcon,
@@ -70,40 +69,14 @@ import {
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
-const props = defineProps<{
-    selectedMachines: string[];
-}>();
+// Use the machine store instead of props
+const machineStore = useMachineStore();
 
-const { toast } = useToast();
-const hasSelectedMachines = computed(() => props.selectedMachines.length > 0);
+const hasSelectedMachines = computed(
+    () => machineStore.selectedMachines.length > 0,
+);
 
 const executeCommand = (commandType: string) => {
-    if (props.selectedMachines.length === 0) return;
-
-    props.selectedMachines.forEach((machineId) => {
-        router.post(
-            route('commands.store', {
-                machine_id: machineId,
-            }),
-            {
-                command_type: commandType.toUpperCase(),
-            },
-            {
-                onSuccess: () => {
-                    toast({
-                        title: `Command executed`,
-                        description: `${commandType.toUpperCase()} command sent to machine ${machineId}`,
-                    });
-                },
-                onError: (errors) => {
-                    toast({
-                        title: 'Error executing command',
-                        description: Object.values(errors).join(', '),
-                        variant: 'destructive',
-                    });
-                },
-            },
-        );
-    });
+    machineStore.executeCommand(commandType);
 };
 </script>
