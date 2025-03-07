@@ -1,3 +1,4 @@
+<!-- TODO: Đọc phần ControlBar này -->
 <template>
     <div class="flex flex-wrap gap-2">
         <Button
@@ -65,6 +66,7 @@ import {
     LockIcon,
     LogOutIcon,
     PowerIcon,
+    PowerOffIcon,
     RefreshCwIcon,
 } from 'lucide-vue-next';
 import { computed } from 'vue';

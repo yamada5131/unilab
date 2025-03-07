@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Controllers\AgentCommandController;
-use App\Http\Controllers\AgentMetricsController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\ComputerController;
 use App\Http\Controllers\MachineController;
@@ -47,15 +45,6 @@ Route::middleware('auth')->group(function () {
     |
     */
     // Route::middleware('verify.agent.token')->group(function() {
-
-    // Agent gửi metrics (CPU, RAM, Disk, Process)
-    Route::post('/agent/metrics', [AgentMetricsController::class, 'store'])->name('agent.metrics.store');
-
-    // Agent lấy danh sách lệnh pending
-    Route::get('/agent/commands', [AgentCommandController::class, 'index'])->name('agent.commands.index');
-
-    // Agent gửi kết quả lệnh
-    Route::post('/agent/command_result', [AgentCommandController::class, 'updateStatus'])->name('agent.commands.updateStatus');
 
     // });
     /*

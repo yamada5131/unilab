@@ -145,7 +145,7 @@ interface ComputerFormData {
 
 interface Props {
     formId: string;
-    isEdit: boolean;
+    isEdit?: boolean;
     isOpen: boolean;
     computer?: Partial<Machine>;
     roomId: string;

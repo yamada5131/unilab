@@ -1,115 +1,66 @@
 <script setup lang="ts">
 import { useToast } from '@/components/ui/toast/use-toast';
+import { useMachineStore } from '@/stores/machine';
 import { Room } from '@/types';
+import { router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import MachineDialog from './MachineDialog.vue';
 import MachineItem from './MachineItem.vue';
 
+// Initialize toast notification system
 const { toast } = useToast();
 
-import { toTypedSchema } from '@vee-validate/zod';
-import { useForm } from 'vee-validate';
-import { computed, h, reactive, ref, watch } from 'vue';
-import * as z from 'zod';
-
-const formSchema = toTypedSchema(
-    z.object({
-        command: z
-            .string()
-            .min(10, {
-                message: 'Command must be at least 10 characters.',
-            })
-            .max(160, {
-                message: 'Command must not be longer than 30 characters.',
-            }),
-    }),
-);
-
-const { handleSubmit } = useForm({
-    validationSchema: formSchema,
-});
-
-import { router } from '@inertiajs/vue3';
-
+// Component props - accepts room data that contains the grid dimensions and machines
 const props = defineProps<{
     room: Room;
 }>();
 
-const emit = defineEmits<{
-    (e: 'update:selected', machines: string[]): void;
-}>();
+// Use centralized machine store for state management instead of local component state
+const machineStore = useMachineStore();
 
-const selectedComputers = reactive<string[]>([]);
-
-// Watch for changes in selectedComputers and emit them
-watch(
-    selectedComputers,
-    (newValue) => {
-        emit('update:selected', [...newValue]);
-    },
-    { deep: true },
-);
-
+/**
+ * Handles machine selection with the following behaviors:
+ * - Normal click: Select only the clicked machine
+ * - Ctrl+click: Toggle selection of the clicked machine (multi-select)
+ * @param id The ID of the machine being clicked
+ * @param event Mouse event to check for modifier keys
+ */
 const handleClick = (id: string, event: MouseEvent) => {
-    const isSelected = selectedComputers.includes(id);
+    const isSelected = machineStore.selectedMachines.includes(id);
 
-    // Không nhấn Ctrl: Chỉ chọn một phần tử
+    // Without Ctrl key: Select only this machine (or deselect if already selected)
     if (!event.ctrlKey) {
-        selectedComputers.splice(0, selectedComputers.length, id);
-        if (isSelected) {
-            selectedComputers.splice(0, 1); // Xóa nếu đã chọn
-        }
+        machineStore.selectMachines(isSelected ? [] : [id]);
         return;
     }
 
-    // Nhấn Ctrl: Thêm hoặc xóa phần tử
-    if (isSelected) {
-        selectedComputers.splice(selectedComputers.indexOf(id), 1);
-    } else {
-        selectedComputers.push(id);
-    }
+    // With Ctrl key: Toggle this machine's selection (add/remove from multi-selection)
+    machineStore.toggleMachineSelection(id);
 };
 
-const selectedComputer = computed(() => {
-    if (selectedComputers.length === 1) {
-        return props.room.machines.find((c) => c.id === selectedComputers[0]);
-    }
-    return null;
-});
-
-const onSubmit = handleSubmit((values) => {
-    toast({
-        title: 'You submitted the following values:',
-        description: h(
-            'pre',
-            { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' },
-            h('code', { class: 'text-white' }, JSON.stringify(values, null, 2)),
-        ),
-    });
-    router.post(
-        route('computers.command', {
-            id: selectedComputer.value?.id ?? '#',
-        }),
-        values,
-    );
-});
-
-// Create grid representation
+/**
+ * Creates a 2D grid representation of the room
+ * Each cell contains information about:
+ * - Its position (row, col)
+ * - Machine at this position (if any)
+ * - A linear index for rendering purposes
+ */
 const gridCells = computed(() => {
     const cells = [];
 
     for (let row = 1; row <= props.room.grid_rows; row++) {
         const rowCells = [];
         for (let col = 1; col <= props.room.grid_cols; col++) {
-            // Find if a computer exists at this position
-            const computer = props.room.machines.find(
-                (c) => c.pos_row === row && c.pos_col === col,
+            // Find if a machine exists at this position
+            const machine = props.room.machines.find(
+                (m) => m.pos_row === row && m.pos_col === col,
             );
 
             rowCells.push({
                 row,
                 col,
-                computer,
-                index: (row - 1) * props.room.grid_cols + col,
+                machine,
+                index: (row - 1) * props.room.grid_cols + col, // Calculate linear index for key prop
             });
         }
         cells.push(rowCells);
@@ -118,16 +69,26 @@ const gridCells = computed(() => {
     return cells;
 });
 
-// Add computer dialog state
+// State for the computer creation dialog
 const isComputerDialogOpen = ref(false);
-const selectedPosition = ref({ row: 1, col: 1 });
+const selectedPosition = ref({ row: 1, col: 1 }); // Default position
 const computerDialogFormId = 'add-computer-form';
 
+/**
+ * Opens the add computer dialog with the selected grid position
+ * @param row Row position in the grid
+ * @param col Column position in the grid
+ */
 const handleAddComputer = (row: number, col: number) => {
     selectedPosition.value = { row, col };
     isComputerDialogOpen.value = true;
 };
 
+/**
+ * Handles the submission of the add computer form
+ * Makes API request and shows success/error notifications
+ * @param data Form data containing computer details
+ */
 const handleComputerSubmit = (data: any) => {
     router.post(route('computers.store'), data, {
         onSuccess: () => {
@@ -147,38 +108,45 @@ const handleComputerSubmit = (data: any) => {
     });
 };
 
+/**
+ * Closes the computer creation dialog
+ */
 const closeComputerDialog = () => {
     isComputerDialogOpen.value = false;
 };
 </script>
 
 <template>
-    <!-- min-h-[calc(100vh-5rem)]  -->
+    <!-- Room container with overflow handling to ensure grid fits properly -->
     <div class="relative flex h-full overflow-hidden p-4">
-        <!-- Dynamic grid based on room dimensions -->
+        <!-- Centered grid container -->
         <div class="flex h-full w-full items-center justify-center">
             <div
                 class="grid grid-flow-row auto-rows-min gap-5"
                 :style="{
-                    // gridTemplateRows: `repeat(${room.grid_rows}, minmax(0, 1fr))`,
+                    // Dynamic column layout based on room configuration
                     gridTemplateColumns: `repeat(${room.grid_cols}, min-content)`,
                 }"
             >
+                <!-- Iterate through each row in our computed grid -->
                 <template v-for="row in gridCells" :key="row[0].row">
+                    <!-- Iterate through each cell in the current row -->
                     <template v-for="cell in row" :key="cell.index">
-                        <!-- If computer exists at this position -->
+                        <!-- Display machine component if a machine exists at this position -->
                         <MachineItem
-                            v-if="cell.computer"
-                            :key="`computer-${cell.row}-${cell.col}`"
+                            v-if="cell.machine"
+                            :key="`machine-${cell.row}-${cell.col}`"
                             :index="cell.index"
-                            :machine="cell.computer"
+                            :machine="cell.machine"
                             :isSelected="
-                                selectedComputers.includes(cell.computer.id)
+                                machineStore.selectedMachines.includes(
+                                    cell.machine.id,
+                                )
                             "
-                            @click="handleClick(cell.computer.id, $event)"
+                            @click="handleClick(cell.machine.id, $event)"
                         />
 
-                        <!-- Empty slot with + sign -->
+                        <!-- Display empty cell with "+" button if no machine exists -->
                         <div
                             v-else
                             :key="`empty-${cell.row}-${cell.col}`"
@@ -192,7 +160,7 @@ const closeComputerDialog = () => {
             </div>
         </div>
 
-        <!-- Add Computer Dialog -->
+        <!-- Modal dialog for adding a new computer - appears when clicking "+" -->
         <MachineDialog
             :form-id="computerDialogFormId"
             :is-open="isComputerDialogOpen"

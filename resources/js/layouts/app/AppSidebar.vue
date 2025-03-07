@@ -1,3 +1,4 @@
+<!-- TODO: Suy trì trạng thái state hiện tại của sidebar xuyên suốt -->
 <script setup lang="ts">
 import type { SidebarProps } from '@/components/ui/sidebar';
 

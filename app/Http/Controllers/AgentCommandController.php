@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Command;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -11,6 +12,11 @@ class AgentCommandController extends Controller
 {
     public function updateStatus(Request $request)
     {
+        // Log toàn bộ request data
+        Log::info('Request received', [
+            'data' => $request->all(),
+            'headers' => $request->headers->all(),
+        ]);
         // Validate the incoming request
         $validated = $request->validate([
             'command_id' => 'required|uuid|exists:commands,id',
@@ -24,7 +30,7 @@ class AgentCommandController extends Controller
 
             // Update command status and completion time
             $command->status = $validated['status'];
-            $command->completed_at = now();
+            $command->completed_at = Carbon::now();
 
             // If message is provided, add it to the payload
             if (isset($validated['message'])) {

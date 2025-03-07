@@ -12,6 +12,7 @@
         <CardContent>
             <p>Thông tin chi tiết phòng sẽ hiển thị tại đây.</p>
         </CardContent>
+        <!-- TODO: Fix responsive các nút bị hiển thị vượt ra ngoài card -->
         <CardFooter
             class="flex flex-col justify-end gap-2 px-6 pb-6 sm:flex-row sm:gap-x-2"
         >
@@ -26,6 +27,7 @@
             >
                 Chỉnh sửa
             </Button>
+            <!-- TODO: Hiển thị dialog khi bấm nút xóa -->
             <Button variant="destructive" @click.stop="$emit('delete')">
                 Xóa
             </Button>
