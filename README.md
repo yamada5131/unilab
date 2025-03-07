@@ -24,3 +24,10 @@ sequenceDiagram
     A->>S: POST /api/agent/command_result\n(status=done / error)
     S->>DB: Update command record (status, completed_at)
 ```
+
+### Roadmap:
+- [ ] TODO: Xây dựng API nhận kết quả từ Agent
+
+    Tạo endpoint POST /api/agent/command_result trong controller (ví dụ: AgentCommandController).
+    Agent gửi thông tin kết quả (command_id, status, message) sau khi thực thi lệnh.
+    Xác thực thông tin gửi đến và cập nhật record lệnh trong Database (đổi trạng thái thành “done” hoặc “error”, cập nhật thời gian hoàn thành).
