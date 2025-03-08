@@ -12,6 +12,179 @@ UniLab là một hệ thống quản lý phòng máy thực hành cho trường 
 - **Message Queue**: RabbitMQ để truyền lệnh từ server đến agent
 - **Database**: Lưu trữ thông tin phòng, máy, lệnh và kết quả
 
+### Quy trình tạo và sử dụng Agent Installation Scripts
+
+#### Tổng quan về Installation Scripts
+Thay vì sử dụng installer truyền thống, hệ thống tạo script cài đặt tự động cho từng máy tính. Script này sẽ thực hiện việc tải, cài đặt và cấu hình Agent để kết nối với server.
+
+#### Quy trình tạo Installation Scripts
+1. **Tạo Script Cá nhân hóa**:
+   - Admin chọn máy tính cần cài đặt Agent trong Dashboard
+   - Hệ thống sinh script cài đặt (PowerShell/Bash) riêng cho máy tính đó
+   - Script được tạo với các thông số nhận dạng máy tính đã được định nghĩa trước
+
+2. **Nội dung Script**:
+   - Tải xuống phần mềm Agent từ repository
+   - Tạo file cấu hình với thông tin đặc thù cho máy tính
+   - Cài đặt Agent và đăng ký nó như service hệ thống
+   - Khởi động service và xác minh kết nối với server
+
+#### Ví dụ về Installation Script
+
+**PowerShell Script (Windows):**
+```powershell
+# UniLab Agent Installation Script
+# Auto-generated for Computer: LAB-PC-42 in Room: A1-404
+# Generated on: 2025-03-08
+
+$SERVER_URL = "https://unilab.example.com"
+$SECRET_KEY = "sk_wAb5DcE2fG3hI4jK5"
+$AGENT_DOWNLOAD_URL = "https://unilab.example.com/downloads/agent/latest/windows"
+$CONFIG_DIR = "C:\ProgramData\UniLab\Agent"
+$INSTALL_DIR = "C:\Program Files\UniLab\Agent"
+
+Write-Host "Starting UniLab Agent installation..." -ForegroundColor Green
+
+# Create directories
+if (-not (Test-Path $CONFIG_DIR)) { New-Item -Path $CONFIG_DIR -ItemType Directory -Force }
+if (-not (Test-Path $INSTALL_DIR)) { New-Item -Path $INSTALL_DIR -ItemType Directory -Force }
+
+# Download Agent
+Write-Host "Downloading Agent software..." -ForegroundColor Yellow
+Invoke-WebRequest -Uri $AGENT_DOWNLOAD_URL -OutFile "$INSTALL_DIR\agent.zip"
+Expand-Archive -Path "$INSTALL_DIR\agent.zip" -DestinationPath $INSTALL_DIR -Force
+Remove-Item -Path "$INSTALL_DIR\agent.zip"
+
+# Create configuration file
+$ConfigJson = @{
+    server = @{
+        url = $SERVER_URL
+        api_base = "/api/agent"
+    }
+    agent = @{
+        heartbeat_interval = 300
+        logging_level = "info"
+    }
+    security = @{
+        secret_key = $SECRET_KEY
+    }
+} | ConvertTo-Json
+
+$ConfigJson | Out-File -FilePath "$CONFIG_DIR\config.json" -Encoding UTF8
+
+# Install as service
+Write-Host "Installing as Windows Service..." -ForegroundColor Yellow
+& "$INSTALL_DIR\install-service.exe"
+
+# Start service
+Write-Host "Starting UniLab Agent service..." -ForegroundColor Yellow
+Start-Service -Name "UniLabAgent"
+
+# Verify
+$Status = Get-Service -Name "UniLabAgent" | Select-Object -ExpandProperty Status
+if ($Status -eq "Running") {
+    Write-Host "Installation completed successfully!" -ForegroundColor Green
+} else {
+    Write-Host "Installation completed, but service is not running. Please check logs." -ForegroundColor Red
+}
+```
+
+#### Ưu điểm của phương pháp Script tự động
+1. **Tính linh hoạt**: Dễ dàng điều chỉnh cho từng hệ điều hành và môi trường
+2. **Minh bạch**: Admin có thể xem và hiểu chính xác những gì script thực hiện
+3. **Khắc phục sự cố**: Dễ dàng thêm các bước chẩn đoán và xử lý lỗi
+4. **Tự động hóa**: Hỗ trợ triển khai hàng loạt thông qua Group Policy/Ansible
+
+#### Quy trình sử dụng
+1. **Tải script**: Admin tải script từ Dashboard
+2. **Chạy script**: Admin chạy script trên máy tính đích với quyền admin
+3. **Xác minh**: Script tự động cài đặt, cấu hình và khởi động Agent
+4. **Đăng ký**: Agent khi khởi động sẽ tự động đăng ký với server
+
+#### Triển khai hàng loạt
+Hệ thống hỗ trợ cài đặt Agent trên nhiều máy tính cùng lúc mà không cần admin phải đi từng máy:
+
+1. **Sử dụng Group Policy (cho Windows domain)**:
+   - Admin tạo scripts cho nhiều máy từ Dashboard
+   - Đóng gói scripts vào package MSI hoặc Group Policy Object (GPO)
+   - Triển khai qua Group Policy trong Active Directory
+   - Scripts tự động chạy khi máy khởi động/đăng nhập
+
+2. **Sử dụng công cụ phân phối từ xa**:
+   ```powershell
+   # Ví dụ script PowerShell để triển khai từ xa
+   $computers = Get-Content "lab-computers.txt"
+   $scriptFolder = "C:\Scripts\InstallationScripts\"
+
+   foreach ($computer in $computers) {
+       # Kiểm tra kết nối
+       if (Test-Connection $computer -Count 1 -Quiet) {
+           # Sao chép script cài đặt
+           Copy-Item "$scriptFolder\$computer-install.ps1" "\\$computer\c$\Temp\"
+           
+           # Chạy script từ xa với đặc quyền admin
+           Invoke-Command -ComputerName $computer -ScriptBlock {
+               Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File C:\Temp\$using:computer-install.ps1" -Verb RunAs
+           }
+       }
+   }
+   ```
+
+3. **Sử dụng công cụ quản lý cấu hình**:
+   - SCCM (Microsoft System Center Configuration Manager)
+   - Ansible (cho Linux/macOS)
+   - Puppet hoặc Chef
+
+#### Cấu trúc thông tin định danh
+Mỗi script cài đặt chứa thông tin định danh riêng cho từng máy tính:
+
+```json
+// Cấu trúc identification trong config.json
+{
+  "identification": {
+    "computer_id": "550e8400-e29b-41d4-a716-446655440000",
+    "mac_address": "00:1B:44:11:3A:B7", 
+    "room_id": "123",
+    "location": "R3-S5",
+    "expected_hostname": "LAB-PC-42"
+  },
+  "security": {
+    "secret_key": "sk_wAb5DcE2fG3hI4jK5"
+  }
+}
+```
+
+#### Về Secret Key
+Secret key đóng vai trò quan trọng trong quy trình xác thực Agent:
+
+1. **Mục đích**:
+   - Cơ chế xác thực một lần trong quá trình đăng ký ban đầu
+   - Ngăn chặn việc máy tính không xác định tự đăng ký vào hệ thống
+   - Đóng vai trò "mật khẩu tạm thời" trước khi token hệ thống được cấp
+
+2. **Lưu trữ**:
+   - **Database**: Lưu dạng hash cùng với bản ghi máy tính
+   - **Script**: Nhúng dạng plaintext để sử dụng khi cài đặt
+   - **Agent**: Lưu tạm thời trong quá trình đăng ký, xóa sau khi nhận token
+
+3. **Sinh và xác thực**:
+   ```php
+   // Sinh secret key (Laravel)
+   $secretKey = 'sk_' . Str::random(16);
+   $computer->secret_key = Hash::make($secretKey);
+   
+   // Xác thực secret key (Laravel)
+   if (!Hash::check($request->secret_key, $computer->secret_key)) {
+       return response()->json(['error' => 'Invalid secret key'], 401);
+   }
+   ```
+
+4. **Vòng đời**:
+   - Được tạo khi admin thêm máy tính vào hệ thống
+   - Sử dụng trong quá trình đăng ký Agent
+   - Bị vô hiệu hóa sau lần sử dụng đầu tiên thành công
+   - Có thể tạo lại nếu cần thiết (ví dụ: cài đặt lại Agent)
+
 ### Luồng hoạt động của hệ thống
 
 Hệ thống UniLab hoạt động thông qua các luồng xử lý chính như sau:
@@ -21,18 +194,39 @@ Hệ thống UniLab hoạt động thông qua các luồng xử lý chính như 
 sequenceDiagram
     actor U as Admin User
     participant D as Dashboard (Web UI)
-    participant A as Agent
     participant S as Laravel Server
     participant DB as Database
+    participant DP as Deployment Tools<br>(GP/SCCM/Ansible)
+    participant A as Agent(s)
 
-    U->>D: Thêm máy mới vào phòng
+    %% Thêm máy tính vào hệ thống
+    U->>D: Thêm máy mới hoặc import danh sách máy
     D->>S: POST /computers<br>(kèm thông tin phòng, vị trí, MAC address)
-    S->>DB: Lưu máy cùng thông tin phòng, vị trí
+    S->>S: Sinh secret key cho mỗi máy<br>sk_[random16chars]
+    S->>DB: Lưu máy + hash của secret key
+    S-->>D: Trả về danh sách máy đã thêm
     
-    U->>D: Tạo script cài đặt cho Agent
-    D->>D: Sinh script cài đặt với thông tin định danh<br>(computer_id, MAC, secret_key)
-    U->>A: Chạy script trên máy tính đích
-    Note over A: Script cài đặt Agent với<br>thông tin định danh có sẵn
+    %% Tạo installation scripts
+    U->>D: Tạo scripts cài đặt
+    D->>S: GET /api/computers/{id}/installation-script
+    S->>DB: Lấy thông tin máy
+    S->>S: Sinh script với thông tin định danh:<br>- computer_id<br>- MAC address<br>- room_id<br>- location<br>- secret_key (plaintext)
+    S-->>D: Trả về scripts (PowerShell/Bash)
+    
+    %% Triển khai cài đặt
+    alt Cài đặt trực tiếp
+        U->>A: Chạy script trên từng máy tính
+    else Triển khai từ xa
+        U->>DP: Upload scripts + cấu hình triển khai
+        DP->>A: Triển khai scripts đến nhiều máy
+    end
+    
+    %% Cài đặt Agent
+    A->>A: Tải Agent từ repository
+    A->>A: Tạo file cấu hình với thông tin định danh
+    A->>A: Cài đặt Agent service
+    A->>A: Khởi động service
+    Note over A: Agent đã được cài đặt với<br>thông tin định danh và secret_key
 ```
 
 #### 2. Đăng ký và xác thực Agent
