@@ -575,7 +575,7 @@ Server có thể thay đổi các tham số này qua các lần heartbeat để 
    - Tự động làm mới token khi gặp lỗi 401 Unauthorized
    - Quay lại quy trình đăng ký nếu không thể làm mới token
 
-### Roadmap:
+## Roadmap:
 - [x] ~~TODO: Xây dựng API nhận kết quả từ Agent~~ (Đã hoàn thành)
 - [ ] TODO: Xây dựng API đăng ký Agent và xác thực
 - [ ] TODO: Xây dựng cơ chế heartbeat để theo dõi trạng thái máy
