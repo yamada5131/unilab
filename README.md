@@ -449,9 +449,9 @@ sequenceDiagram
      }
      ```
 
-### 2. Ý nghĩa của các tham số cấu hình
+#### **Ý nghĩa của các tham số cấu hình**
 
-#### **Config từ server**
+##### **Config từ server**
 Các tham số cấu hình này đóng vai trò quan trọng trong việc kiểm soát hành vi của Agent:
 
 1. **`polling_interval: 300`**
