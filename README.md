@@ -575,8 +575,54 @@ Server có thể thay đổi các tham số này qua các lần heartbeat để 
    - Tự động làm mới token khi gặp lỗi 401 Unauthorized
    - Quay lại quy trình đăng ký nếu không thể làm mới token
 
-## Roadmap:
-- [x] ~~TODO: Xây dựng API nhận kết quả từ Agent~~ (Đã hoàn thành)
-- [ ] TODO: Xây dựng API đăng ký Agent và xác thực
-- [ ] TODO: Xây dựng cơ chế heartbeat để theo dõi trạng thái máy
-- [ ] TODO: Hoàn thiện hệ thống phân phối lệnh qua Message Queue
+## Roadmap
+
+### Milestone 1: Cơ sở hạ tầng
+- [x] ~~Thiết lập Database Schema (migrations, models, relationships)~~
+- [x] ~~Cấu hình Laravel Server cơ bản~~
+- [x] ~~Xây dựng API nhận kết quả từ Agent~~ (Đã hoàn thành)
+- [x] ~~Tích hợp RabbitMQ với Laravel~~
+- [x] ~~Cài đặt Laravel Sanctum cho API authentication~~
+
+### Milestone 2: Quản lý phòng và máy tính
+- [x] ~~API CRUD cho phòng và máy tính~~
+- [ ] Hệ thống sinh secret key bảo mật
+- [x] ~~Giao diện Dashboard quản lý phòng học~~
+- [ ] Tính năng import/export danh sách máy
+
+### Milestone 3: Agent và Installation Scripts
+- [ ] Xây dựng cấu trúc Agent cơ bản (Windows)
+- [ ] API tạo Installation Scripts (`/api/computers/{id}/installation-script`)
+- [ ] Giao diện tạo và tải scripts từ Dashboard
+- [ ] Công cụ triển khai hàng loạt (Group Policy, SCCM, Ansible)
+
+### Milestone 4: Đăng ký và xác thực Agent
+- [ ] Endpoint POST `/api/agent/register` (xác minh secret key)
+- [ ] Endpoint POST `/api/agent/token` (xử lý token xác thực)
+- [ ] Cài đặt luồng đăng ký và xác thực trong Agent
+- [ ] Xử lý token hết hạn và làm mới token
+
+### Milestone 5: Cơ chế heartbeat và giám sát
+- [ ] Endpoint POST `/api/agent/heartbeat`
+- [ ] Cơ chế thu thập thông tin tài nguyên trong Agent
+- [ ] Dashboard giám sát trạng thái máy tính real-time
+- [ ] Hệ thống cảnh báo khi máy offline/quá tải
+
+### Milestone 6: Hệ thống phân phối lệnh
+- [x] ~~Thiết lập RabbitMQ exchanges và routing patterns~~
+- [x] ~~Endpoint POST `/api/commands` và job xử lý~~
+- [x] ~~Phát triển module nhận và giải mã lệnh trong Agent~~
+- [ ] Phát triển module xử lý lệnh trong Agent
+- [ ] Triển khai các loại lệnh cơ bản (SHUTDOWN, RESTART, INSTALL, UPDATE, EXECUTE)
+
+### Milestone 7: Xử lý lỗi và độ tin cậy
+- [ ] Cơ chế cache lệnh khi mất kết nối
+- [ ] Hệ thống retry cho lệnh thất bại
+- [ ] Cập nhật Agent tự động
+- [ ] Hệ thống ghi log chi tiết
+
+### Milestone 8: Tối ưu và mở rộng
+- [ ] Tối ưu hiệu suất API và Message Queue
+- [ ] Thêm tính năng báo cáo và phân tích
+- [ ] Tích hợp với hệ thống quản lý học tập (LMS)
+- [ ] Phát triển API cho ứng dụng mobile
