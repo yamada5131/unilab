@@ -6,11 +6,11 @@ UniLab là một hệ thống quản lý phòng máy thực hành cho trường 
 ## Kiến trúc hệ thống
 
 ### Thành phần chính
-- **Dashboard (Web UI)**: Giao diện người dùng cho admin
-- **Laravel Server**: Backend API server
-- **Agent**: Phần mềm chạy trên máy tính client
+- **Dashboard (Web UI)**: Giao diện người dùng cho admin, được xây dựng bằng Inertia.js với Vue.js
+- **Laravel Server**: Backend API server, sử dụng Laravel framework
+- **Agent**: Phần mềm chạy trên máy tính client, được phát triển bằng Python
 - **Message Queue**: RabbitMQ để truyền lệnh từ server đến agent
-- **Database**: Lưu trữ thông tin phòng, máy, lệnh và kết quả
+- **Database**: Supabase - nền tảng database PostgreSQL, sử dụng để lưu trữ thông tin phòng, máy, lệnh và kết quả
 
 ### Quy trình tạo và sử dụng Agent Installation Scripts
 
