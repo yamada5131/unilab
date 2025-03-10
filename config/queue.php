@@ -90,6 +90,7 @@ return [
                     'exchange_type' => 'topic',
                     // 'exchange_routing_key' => '%s.#', // tên queue được chỉ định qua onQueue() sẽ được sử dụng thay thế vào %s trong cấu hình exchange_routing_key
                     // Priority configuration when they were delayed
+                    // 'job' => \App\Queue\Jobs\RabbitMQJob::class,
                 ],
             ],
 

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProcessComputerCommand;
 use App\Models\Command;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Queue;
 
 class CommandController extends Controller
 {
@@ -16,10 +16,17 @@ class CommandController extends Controller
             'command_type' => 'required|string',
         ]));
 
-        // Dispatch the job to the queue
-        ProcessComputerCommand::dispatch($command)
-            ->onConnection('rabbitmq')
-            ->onQueue("command.machine.{$command->machine_id}");
+        // Prepare the command data
+        $commandData = [
+            'id' => $command->id,
+            'machine_id' => $command->machine_id,
+            'command_type' => $command->command_type,
+        ];
+
+        Queue::connection('rabbitmq')->pushRaw(json_encode([
+            // 'job' => 'App\\Jobs\\ProcessComputerCommand@handle',
+            'data' => $commandData,
+        ]), "command.machine.{$command->machine_id}");
 
         return redirect()->back();
     }
