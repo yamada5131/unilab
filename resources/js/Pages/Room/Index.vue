@@ -67,7 +67,7 @@ import { router } from '@inertiajs/vue3';
 import { Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import RoomCard from './Partials/RoomCard.vue';
-import RoomDialog from './Partials/RoomDialog.vue';
+import RoomDialog from './Partials/RoomCreateUpdateDialog.vue';
 
 // State dùng cho tìm kiếm
 const searchQuery = ref<string>('');

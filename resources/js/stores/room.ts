@@ -8,6 +8,7 @@ import { ref } from 'vue';
 export const useRoomStore = defineStore('room', () => {
     const isCreateDialogOpen = ref(false);
     const isEditDialogOpen = ref(false);
+    const isDeleteDialogOpen = ref(false);
     const currentRoom = ref<Partial<Room> | null>(null);
     const { toast } = useToast();
 
@@ -26,6 +27,16 @@ export const useRoomStore = defineStore('room', () => {
 
     function closeEditDialog() {
         isEditDialogOpen.value = false;
+        currentRoom.value = null;
+    }
+
+    function openDeleteDialog(room: Room) {
+        currentRoom.value = room;
+        isDeleteDialogOpen.value = true;
+    }
+
+    function closeDeleteDialog() {
+        isDeleteDialogOpen.value = false;
         currentRoom.value = null;
     }
 
@@ -68,33 +79,34 @@ export const useRoomStore = defineStore('room', () => {
     }
 
     function deleteRoom(roomId: string) {
-        if (confirm('Bạn có chắc muốn xóa phòng này?')) {
-            router.delete(route('rooms.destroy', roomId), {
-                onSuccess: () => {
-                    toast({
-                        title: 'Thành công',
-                        description: 'Phòng đã được xóa',
-                    });
-                },
-                onError: () => {
-                    toast({
-                        title: 'Lỗi',
-                        description: 'Có lỗi xảy ra khi xóa phòng',
-                        variant: 'destructive',
-                    });
-                },
-            });
-        }
+        router.delete(route('rooms.destroy', roomId), {
+            onSuccess: () => {
+                toast({
+                    title: 'Thành công',
+                    description: 'Phòng đã được xóa',
+                });
+            },
+            onError: () => {
+                toast({
+                    title: 'Lỗi',
+                    description: 'Có lỗi xảy ra khi xóa phòng',
+                    variant: 'destructive',
+                });
+            },
+        });
     }
 
     return {
         isCreateDialogOpen,
         isEditDialogOpen,
+        isDeleteDialogOpen,
         currentRoom,
         openCreateDialog,
         closeCreateDialog,
         openEditDialog,
         closeEditDialog,
+        openDeleteDialog,
+        closeDeleteDialog,
         createRoom,
         updateRoom,
         deleteRoom,

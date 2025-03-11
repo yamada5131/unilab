@@ -23,30 +23,75 @@
             </Link>
             <Button
                 class="bg-yellow-500 text-white hover:bg-yellow-600"
-                @click.stop="openEditDialog"
+                @click.stop="handleOpenEditDialog"
             >
                 Chỉnh sửa
             </Button>
-            <!-- TODO: Hiển thị dialog khi bấm nút xóa -->
-            <Button variant="destructive" @click.stop="$emit('delete')">
-                Xóa
-            </Button>
+            <AlertDialog
+                :open="
+                    roomStore.isDeleteDialogOpen &&
+                    roomStore.currentRoom?.id === room.id
+                "
+            >
+                <AlertDialogTrigger as-child>
+                    <Button
+                        variant="destructive"
+                        @click.stop="handleOpenDeleteDialog"
+                    >
+                        Xóa
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle
+                            >Are you absolutely sure?</AlertDialogTitle
+                        >
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently
+                            delete your room and remove its data from our
+                            servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            @click="roomStore.closeDeleteDialog()"
+                            >Cancel</AlertDialogCancel
+                        >
+                        <AlertDialogAction @click.stop="handleDeleteRoom">
+                            Continue
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </CardFooter>
     </Card>
 
     <!-- Edit Room Dialog -->
     <RoomDialog
         :form-id="`editRoomForm-${room.id}`"
-        :is-open="isEditDialogOpen"
+        :is-open="
+            roomStore.isEditDialogOpen && roomStore.currentRoom?.id === room.id
+        "
         :is-edit="true"
         :room="room"
-        @close="isEditDialogOpen = false"
-        @update:is-open="isEditDialogOpen = $event"
-        @submit="handleEditSubmit"
+        @close="roomStore.closeEditDialog()"
+        @update:is-open="updateEditDialogState"
+        @submit="handleEditRoom"
     />
 </template>
 
 <script setup lang="ts">
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -59,8 +104,7 @@ import {
 import { useRoomStore } from '@/stores/room';
 import { Room } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
-import RoomDialog from './RoomDialog.vue';
+import RoomDialog from './RoomCreateUpdateDialog.vue';
 
 // Props definition
 const props = defineProps<{
@@ -73,20 +117,29 @@ defineEmits<{
     delete: [];
 }>();
 
-// Local state for the edit dialog
-// We keep this local as it's specific to this card instance
-const isEditDialogOpen = ref<boolean>(false);
-
 const roomStore = useRoomStore();
 
 // Open the edit dialog
-const openEditDialog = () => {
-    isEditDialogOpen.value = true;
+const handleOpenEditDialog = () => {
+    roomStore.openEditDialog(props.room);
 };
 
 // Handle edit form submission
-const handleEditSubmit = (values) => {
+const handleEditRoom = (values) => {
     roomStore.updateRoom(props.room.id, values);
-    isEditDialogOpen.value = false;
+};
+
+const updateEditDialogState = (isOpen: boolean) => {
+    if (!isOpen) {
+        roomStore.closeEditDialog();
+    }
+};
+
+const handleOpenDeleteDialog = () => {
+    roomStore.openDeleteDialog(props.room);
+};
+
+const handleDeleteRoom = () => {
+    roomStore.deleteRoom(props.room.id);
 };
 </script>
