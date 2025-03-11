@@ -96,3 +96,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Thêm vào resources/css/app.css */
+body {
+  margin-bottom: 0 !important;
+}
