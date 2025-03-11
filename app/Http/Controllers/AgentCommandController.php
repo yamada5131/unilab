@@ -12,11 +12,6 @@ class AgentCommandController extends Controller
 {
     public function updateStatus(Request $request)
     {
-        // Log toàn bộ request data
-        Log::info('Request received', [
-            'data' => $request->all(),
-            'headers' => $request->headers->all(),
-        ]);
         // Validate the incoming request
         $validated = $request->validate([
             'command_id' => 'required|uuid|exists:commands,id',

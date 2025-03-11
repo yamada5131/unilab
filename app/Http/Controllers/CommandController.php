@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Command;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
 class CommandController extends Controller
@@ -23,11 +24,30 @@ class CommandController extends Controller
             'command_type' => $command->command_type,
         ];
 
-        Queue::connection('rabbitmq')->pushRaw(json_encode([
-            // 'job' => 'App\\Jobs\\ProcessComputerCommand@handle',
-            'data' => $commandData,
-        ]), "command.machine.{$command->machine_id}");
+        try {
+            Queue::connection('rabbitmq')->pushRaw(json_encode([
+                'data' => $commandData,
+            ]), "command.machine.{$command->machine_id}");
 
-        return redirect()->back();
+            return redirect()->back();
+            // ->with('success', 'Lệnh đã được gửi thành công');
+        } catch (\Exception $e) {
+            // Log lỗi chi tiết
+            Log::error('Lỗi gửi lệnh: '.$e->getMessage(), [
+                'command_id' => $command->id,
+                'machine_id' => $command->machine_id,
+            ]);
+
+            // Cập nhật trạng thái lệnh trong database
+            $command->status = 'failed';
+            $command->payload = [
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+            ];
+            $command->save();
+
+            return redirect()->back();
+            // ->with('error', 'Không thể gửi lệnh đến máy tính');
+        }
     }
 }
