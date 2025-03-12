@@ -575,54 +575,110 @@ Server có thể thay đổi các tham số này qua các lần heartbeat để 
    - Tự động làm mới token khi gặp lỗi 401 Unauthorized
    - Quay lại quy trình đăng ký nếu không thể làm mới token
 
-## Roadmap
+## Roadmap phát triển UniLab
 
-### Milestone 1: Cơ sở hạ tầng
+### Milestone 1: Cơ sở hạ tầng ✓
 - [x] ~~Thiết lập Database Schema (migrations, models, relationships)~~
 - [x] ~~Cấu hình Laravel Server cơ bản~~
-- [x] ~~Xây dựng API nhận kết quả từ Agent~~ (Đã hoàn thành)
+- [x] ~~Xây dựng API nhận kết quả từ Agent~~ 
 - [x] ~~Tích hợp RabbitMQ với Laravel~~
 - [x] ~~Cài đặt Laravel Sanctum cho API authentication~~
 
-### Milestone 2: Quản lý phòng và máy tính
+### Milestone 2: Quản lý phòng và máy tính ⚠️
 - [x] ~~API CRUD cho phòng và máy tính~~
 - [ ] Hệ thống sinh secret key bảo mật
-- [x] ~~Giao diện Dashboard quản lý phòng học~~
 - [ ] Tính năng import/export danh sách máy
+- [ ] Unit tests cho các API endpoints
 
-### Milestone 3: Agent và Installation Scripts
-- [ ] Xây dựng cấu trúc Agent cơ bản (Windows)
+### Milestone 2.5: Giao diện Dashboard cơ bản ⚠️
+- [x] ~~Thiết kế hệ thống UI components sử dụng Vue.js~~
+- [x] ~~Xây dựng layout chính và navigation~~
+- [x] ~~Tích hợp authentication UI và quản lý phiên đăng nhập~~
+- [ ] Trang quản lý người dùng và phân quyền
+- [ ] Trang dashboard tổng quan với thống kê nhanh
+- [ ] Đảm bảo responsive design cho tất cả màn hình
+
+### Milestone 3: Hệ thống phân phối lệnh ⚠️
+- [x] ~~Thiết lập RabbitMQ exchanges và routing patterns~~
+- [x] ~~Endpoint POST `/api/commands` và job xử lý~~
+- [ ] Phát triển module xử lý lệnh trong Agent
+- [ ] Triển khai các loại lệnh cơ bản (SHUTDOWN, RESTART, INSTALL, UPDATE, EXECUTE)
+- [ ] Integration tests cho luồng xử lý lệnh
+
+### Milestone 3.5: Giao diện quản lý phòng và máy ⚠️
+- [x] ~~Giao diện Dashboard quản lý phòng học~~
+- [x] ~~Giao diện grid layout cho phòng máy~~
+- [ ] Thành phần UI hiển thị trạng thái máy tính
+- [ ] Giao diện thêm, sửa, xóa máy tính
+- [ ] Chức năng kéo-thả để sắp xếp vị trí máy tính trong phòng
+- [ ] Chức năng import/export danh sách máy tính
+- [ ] Tests cho các components UI
+
+### Milestone 4: Agent và Installation Scripts
+- [ ] Xây dựng cấu trúc Agent cơ bản (Windows/Linux)
 - [ ] API tạo Installation Scripts (`/api/computers/{id}/installation-script`)
 - [ ] Giao diện tạo và tải scripts từ Dashboard
 - [ ] Công cụ triển khai hàng loạt (Group Policy, SCCM, Ansible)
+- [ ] Cơ chế tự phục hồi (self-healing) cho Agent
+- [ ] Tests đối với Agent trong các môi trường khác nhau
 
-### Milestone 4: Đăng ký và xác thực Agent
+### Milestone 5: Đăng ký và xác thực Agent
 - [ ] Endpoint POST `/api/agent/register` (xác minh secret key)
 - [ ] Endpoint POST `/api/agent/token` (xử lý token xác thực)
 - [ ] Cài đặt luồng đăng ký và xác thực trong Agent
 - [ ] Xử lý token hết hạn và làm mới token
+- [ ] Security tests cho hệ thống xác thực
 
-### Milestone 5: Cơ chế heartbeat và giám sát
+### Milestone 6: Cơ chế heartbeat và giám sát
 - [ ] Endpoint POST `/api/agent/heartbeat`
 - [ ] Cơ chế thu thập thông tin tài nguyên trong Agent
 - [ ] Dashboard giám sát trạng thái máy tính real-time
 - [ ] Hệ thống cảnh báo khi máy offline/quá tải
+- [ ] Performance tests cho hệ thống heartbeat
 
-### Milestone 6: Hệ thống phân phối lệnh
-- [x] ~~Thiết lập RabbitMQ exchanges và routing patterns~~
-- [x] ~~Endpoint POST `/api/commands` và job xử lý~~
-- [x] ~~Phát triển module nhận và giải mã lệnh trong Agent~~
-- [ ] Phát triển module xử lý lệnh trong Agent
-- [ ] Triển khai các loại lệnh cơ bản (SHUTDOWN, RESTART, INSTALL, UPDATE, EXECUTE)
+### Milestone 6.5: UI giám sát và điều khiển
+- [ ] Dashboard giám sát real-time với thống kê tài nguyên
+- [ ] Biểu đồ theo dõi hiệu suất hệ thống
+- [x] ~~Giao diện gửi lệnh đến máy tính/nhóm máy tính~~
+- [ ] UI hiển thị lịch sử lệnh và trạng thái thực thi
+- [ ] Trang trạng thái hệ thống (health monitoring)
+- [ ] Hệ thống thông báo và cảnh báo khi máy offline
 
 ### Milestone 7: Xử lý lỗi và độ tin cậy
 - [ ] Cơ chế cache lệnh khi mất kết nối
 - [ ] Hệ thống retry cho lệnh thất bại
 - [ ] Cập nhật Agent tự động
 - [ ] Hệ thống ghi log chi tiết
+- [ ] Xử lý các scenario máy tính bị shutdown đột ngột
+- [ ] Chaos testing và recovery testing
 
-### Milestone 8: Tối ưu và mở rộng
+### Milestone 7.5: UI báo cáo và phân tích
+- [ ] Trang tạo và xem báo cáo sử dụng phòng máy
+- [ ] Biểu đồ và thống kê sử dụng tài nguyên
+- [ ] Báo cáo hiệu suất và tình trạng phần cứng theo thời gian
+- [ ] Giao diện export báo cáo (PDF, Excel)
+- [ ] Bảng điều khiển tùy chỉnh (custom dashboard widgets)
+- [ ] Kiểm thử UX với người dùng thực tế
+
+### Milestone 8: Tối ưu và bảo mật
+- [ ] Code audit và security review
 - [ ] Tối ưu hiệu suất API và Message Queue
-- [ ] Thêm tính năng báo cáo và phân tích
-- [ ] Tích hợp với hệ thống quản lý học tập (LMS)
-- [ ] Phát triển API cho ứng dụng mobile
+- [ ] Giảm resource usage của Agent trên máy client
+- [ ] Triển khai rate limiting và bảo vệ API
+- [ ] Hệ thống giám sát bảo mật và phát hiện xâm nhập
+- [ ] Performance benchmarking và stress testing
+
+### Milestone 9: Tài liệu và hướng dẫn
+- [ ] API documentation đầy đủ
+- [ ] Tài liệu hướng dẫn sử dụng cho admin
+- [ ] Tài liệu cài đặt và cấu hình hệ thống
+- [ ] Video tutorials cho các tính năng chính
+- [ ] Tài liệu troubleshooting và FAQ
+
+### Milestone 10: Phát hành và triển khai
+- [ ] Chuẩn bị môi trường production
+- [ ] Thiết lập CI/CD pipeline
+- [ ] Triển khai phiên bản beta và thu thập feedback
+- [ ] Sửa lỗi và cải tiến dựa trên feedback
+- [ ] Release phiên bản stable 1.0
+- [ ] Kế hoạch bảo trì và nâng cấp
