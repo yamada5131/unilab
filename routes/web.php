@@ -7,6 +7,12 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -16,21 +22,37 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes
+|--------------------------------------------------------------------------
+*/
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::resource('rooms', RoomController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
-
-    Route::resource('computers', ComputerController::class)->only(['store', 'update', 'destroy']);
-
-    Route::post('/computers/{id}/command', [ComputerController::class, 'sendCommand'])->name('computers.command');
-
+// Dashboard
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
 });
 
+Route::middleware('auth')->group(function () {
+    // User profile management
+    Route::controller(ProfileController::class)->group(function () {
+        Route::get('/profile', 'edit')->name('profile.edit');
+        Route::patch('/profile', 'update')->name('profile.update');
+        Route::delete('/profile', 'destroy')->name('profile.destroy');
+    });
+
+    // Room management
+    Route::resource('rooms', RoomController::class)
+        ->only(['index', 'store', 'show', 'update', 'destroy']);
+
+    // Computer management
+    Route::resource('computers', ComputerController::class)
+        ->only(['store', 'update', 'destroy']);
+    Route::post('/computers/{id}/command', [ComputerController::class, 'sendCommand'])
+        ->name('computers.command');
+});
+
+// Authentication routes
 require __DIR__.'/auth.php';
