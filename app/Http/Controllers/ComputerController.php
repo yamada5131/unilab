@@ -26,9 +26,9 @@ class ComputerController extends Controller
         // Add last_seen timestamp to mark as recently added
         $validated['last_seen'] = Carbon::now();
 
-        $machine = Machine::create($validated);
+        Machine::create($validated);
 
-        return redirect()->back()->with('success', 'Máy tính đã được thêm thành công.');
+        return redirect()->back();
     }
 
     /**
@@ -49,7 +49,7 @@ class ComputerController extends Controller
 
         $machine->update($validated);
 
-        return redirect()->back()->with('success', 'Thông tin máy tính đã được cập nhật.');
+        return redirect()->back();
     }
 
     /**
@@ -60,7 +60,7 @@ class ComputerController extends Controller
         $machine = Machine::findOrFail($id);
         $machine->delete();
 
-        return redirect()->back()->with('success', 'Máy tính đã được xóa.');
+        return redirect()->back();
     }
 
     /**
@@ -78,6 +78,6 @@ class ComputerController extends Controller
             $validated['command'],
         )->onQueue($id.'.#');
 
-        return redirect()->back()->with('success', 'Lệnh đã được gửi đến máy tính.');
+        return redirect()->back();
     }
 }

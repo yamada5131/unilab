@@ -25,14 +25,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::resource('rooms', RoomController::class)
-        ->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::resource('rooms', RoomController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
-    Route::resource('computers', ComputerController::class)
-        ->only(['store', 'update', 'destroy']);
+    Route::resource('computers', ComputerController::class)->only(['store', 'update', 'destroy']);
 
-    Route::post('/computers/{id}/command', [ComputerController::class, 'sendCommand'])
-        ->name('computers.command');
+    Route::post('/computers/{id}/command', [ComputerController::class, 'sendCommand'])->name('computers.command');
 
 });
 
