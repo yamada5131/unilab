@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignUuid('machine_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
             $table->text('command_type');
             $table->jsonb('payload')->nullable();
-            $table->enum('status', ['pending', 'in_progress', 'done', 'error'])->default('pending');
+            $table->text('status');
             $table->timestampTz('completed_at')->nullable();
             $table->timestampsTz();
         });

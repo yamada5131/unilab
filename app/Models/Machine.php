@@ -15,20 +15,13 @@ class Machine extends Model
     use HasUuids;
 
     /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array<string>|bool
-     */
-    protected $guarded = [];
-
-    /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
      */
     protected $casts = [
-        'is_online' => 'boolean',
-        'last_seen' => 'datetime',
+        // 'is_online' => 'boolean',
+        // 'last_seen' => 'datetime',
     ];
 
     /**
