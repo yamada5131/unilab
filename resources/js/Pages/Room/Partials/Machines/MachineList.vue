@@ -12,7 +12,9 @@ const { toast } = useToast();
 
 // Component props - accepts room data that contains the grid dimensions and machines
 const props = defineProps<{
-    room: Room;
+    room: {
+        data: Room;
+    };
 }>();
 
 // Use centralized machine store for state management instead of local component state
@@ -48,11 +50,11 @@ const handleClick = (id: string, event: MouseEvent) => {
 const gridCells = computed(() => {
     const cells = [];
 
-    for (let row = 1; row <= props.room.grid_rows; row++) {
+    for (let row = 1; row <= props.room.data.grid_rows; row++) {
         const rowCells = [];
-        for (let col = 1; col <= props.room.grid_cols; col++) {
+        for (let col = 1; col <= props.room.data.grid_cols; col++) {
             // Find if a machine exists at this position
-            const machine = props.room.machines.find(
+            const machine = props.room.data.machines.find(
                 (m) => m.pos_row === row && m.pos_col === col,
             );
 
@@ -60,7 +62,7 @@ const gridCells = computed(() => {
                 row,
                 col,
                 machine,
-                index: (row - 1) * props.room.grid_cols + col, // Calculate linear index for key prop
+                index: (row - 1) * props.room.data.grid_cols + col, // Calculate linear index for key prop
             });
         }
         cells.push(rowCells);
@@ -125,7 +127,7 @@ const closeComputerDialog = () => {
                 class="grid grid-flow-row auto-rows-min gap-5"
                 :style="{
                     // Dynamic column layout based on room configuration
-                    gridTemplateColumns: `repeat(${room.grid_cols}, min-content)`,
+                    gridTemplateColumns: `repeat(${room.data.grid_cols}, min-content)`,
                 }"
             >
                 <!-- Iterate through each row in our computed grid -->
@@ -165,7 +167,7 @@ const closeComputerDialog = () => {
             :form-id="computerDialogFormId"
             :is-open="isComputerDialogOpen"
             :position="selectedPosition"
-            :room-id="room.id"
+            :room-id="room.data.id"
             @update:is-open="isComputerDialogOpen = $event"
             @submit="handleComputerSubmit"
             @close="closeComputerDialog"

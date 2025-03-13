@@ -8,7 +8,7 @@
                 <ControlBar />
             </div>
         </template>
-        <MachineList :room="room.data" />
+        <MachineList :room.data="room" />
     </AuthenticatedLayout>
 </template>
 
