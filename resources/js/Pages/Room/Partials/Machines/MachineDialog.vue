@@ -66,36 +66,6 @@
                         <FormMessage />
                     </FormItem>
                 </FormField>
-
-                <div class="flex gap-4">
-                    <FormField v-slot="{ componentField }" name="pos_row">
-                        <FormItem class="flex-1">
-                            <FormLabel>Hàng</FormLabel>
-                            <FormControl>
-                                <Input
-                                    type="number"
-                                    placeholder="1"
-                                    v-bind="componentField"
-                                    readonly
-                                />
-                            </FormControl>
-                        </FormItem>
-                    </FormField>
-
-                    <FormField v-slot="{ componentField }" name="pos_col">
-                        <FormItem class="flex-1">
-                            <FormLabel>Cột</FormLabel>
-                            <FormControl>
-                                <Input
-                                    type="number"
-                                    placeholder="1"
-                                    v-bind="componentField"
-                                    readonly
-                                />
-                            </FormControl>
-                        </FormItem>
-                    </FormField>
-                </div>
             </form>
 
             <DialogFooter>
