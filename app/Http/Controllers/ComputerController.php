@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ProcessComputerCommand;
 use App\Models\Machine;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -12,7 +13,7 @@ class ComputerController extends Controller
     /**
      * Store a newly created computer in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -34,7 +35,7 @@ class ComputerController extends Controller
     /**
      * Update the specified computer in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id): RedirectResponse
     {
         $machine = Machine::findOrFail($id);
 
@@ -55,12 +56,12 @@ class ComputerController extends Controller
     /**
      * Remove the specified computer from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $id): RedirectResponse
     {
         $machine = Machine::findOrFail($id);
         $machine->delete();
 
-        return redirect()->back();
+        return to_route('rooms.show', $machine->room_id);
     }
 
     /**
