@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreRoomRequest;
+use App\Http\Requests\UpdateRoomRequest;
 use App\Http\Resources\RoomResource;
 use App\Models\Room;
-use Illuminate\Http\Request as HttpRequest;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,42 +19,36 @@ class RoomController extends Controller
         ]);
     }
 
-    public function store(HttpRequest $request)
+    public function store(StoreRoomRequest $request): RedirectResponse
     {
-        Room::create($request->validate([
-            'name' => 'required|string|max:50',
-            'grid_rows' => 'required|integer',
-            'grid_cols' => 'required|integer',
-        ]));
+        $validated = $request->validated();
+
+        Room::create($validated);
 
         return to_route('rooms.index');
     }
 
     public function show(string $id): Response
     {
+        $room = Room::findOrFail($id)->load('machines');
+
         return Inertia::render('Room/Show',
             [
-                'room' => RoomResource::make(
-                    Room::findOrFail($id)->load('machines')
-                ),
+                'room' => RoomResource::make($room),
             ]
         );
     }
 
-    public function update(HttpRequest $request, string $id)
+    public function update(UpdateRoomRequest $request, string $id): RedirectResponse
     {
-        Room::findOrFail($id)->update((
-            $request->validate([
-                'name' => 'required|string|max:50',
-                'grid_rows' => 'required|integer',
-                'grid_cols' => 'required|integer',
-            ])
-        ));
+        $validated = $request->validated();
+
+        Room::findOrFail($id)->update($validated);
 
         return to_route('rooms.index');
     }
 
-    public function destroy(string $id)
+    public function destroy(string $id): RedirectResponse
     {
         Room::findOrFail($id)->delete();
 
