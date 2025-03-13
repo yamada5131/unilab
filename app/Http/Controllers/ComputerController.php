@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreComputerRequest;
+use App\Http\Requests\UpdateComputerRequest;
 use App\Jobs\ProcessComputerCommand;
 use App\Models\Machine;
 use Illuminate\Http\RedirectResponse;
@@ -10,21 +12,10 @@ use Illuminate\Support\Carbon;
 
 class ComputerController extends Controller
 {
-    /**
-     * Store a newly created computer in storage.
-     */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreComputerRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'mac_address' => ['required', 'string', 'regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', 'unique:machines,mac_address'],
-            'ip_address' => ['required', 'string', 'ip'],
-            'pos_row' => ['required', 'integer', 'min:1'],
-            'pos_col' => ['required', 'integer', 'min:1'],
-            'room_id' => ['required', 'exists:rooms,id'],
-        ]);
+        $validated = $request->validated();
 
-        // Add last_seen timestamp to mark as recently added
         $validated['last_seen'] = Carbon::now();
 
         Machine::create($validated);
@@ -32,30 +23,17 @@ class ComputerController extends Controller
         return redirect()->back();
     }
 
-    /**
-     * Update the specified computer in storage.
-     */
-    public function update(Request $request, string $id): RedirectResponse
+    public function update(UpdateComputerRequest $request, string $id): RedirectResponse
     {
         $machine = Machine::findOrFail($id);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'mac_address' => ['required', 'string', 'regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', 'unique:machines,mac_address,'.$id],
-            'ip_address' => ['required', 'string', 'ip'],
-            'pos_row' => ['required', 'integer', 'min:1'],
-            'pos_col' => ['required', 'integer', 'min:1'],
-            'room_id' => ['required', 'exists:rooms,id'],
-        ]);
+        $validated = $request->validated();
 
         $machine->update($validated);
 
         return redirect()->back();
     }
 
-    /**
-     * Remove the specified computer from storage.
-     */
     public function destroy(string $id): RedirectResponse
     {
         $machine = Machine::findOrFail($id);
@@ -64,9 +42,6 @@ class ComputerController extends Controller
         return to_route('rooms.show', $machine->room_id);
     }
 
-    /**
-     * Send a command to the specified computer.
-     */
     public function sendCommand(Request $request, string $id)
     {
         $validated = $request->validate([
