@@ -24,7 +24,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
         // JsonResource::withoutWrapping();
-        Model::unguard();
 
         Model::shouldBeStrict();
     }

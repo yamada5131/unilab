@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
-class UpdateRoomRequest extends BaseRoomRequest
+use Illuminate\Foundation\Http\FormRequest;
+
+class UpdateRoomRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -19,6 +21,10 @@ class UpdateRoomRequest extends BaseRoomRequest
      */
     public function rules(): array
     {
-        return $this->baseRules();
+        return [
+            'name' => 'sometimes|required|string|max:50',
+            'grid_rows' => 'sometimes|required|integer|min:1',
+            'grid_cols' => 'sometimes|required|integer|min:1',
+        ];
     }
 }

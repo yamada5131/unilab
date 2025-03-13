@@ -13,6 +13,8 @@ class Command extends Model
     use HasFactory;
     use HasUuids;
 
+    protected $guarded = [];
+
     public function casts(): array
     {
         return [

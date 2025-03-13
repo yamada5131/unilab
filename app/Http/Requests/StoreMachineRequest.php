@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class BaseComputerRequest extends FormRequest
+class StoreMachineRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -27,7 +27,7 @@ class BaseComputerRequest extends FormRequest
             'ip_address' => ['required', 'string', 'ip'],
             'pos_row' => ['required', 'integer', 'min:1'],
             'pos_col' => ['required', 'integer', 'min:1'],
-            'room_id' => ['required', 'exists:rooms,id'],
+            'room_id' => ['required', 'uuid', 'exists:rooms,id'],
         ];
     }
 }

@@ -87,11 +87,25 @@ test('update endpoint modifies room', function () {
     ];
 
     // Act
-    $response = $this->put(route('rooms.update', $room->id), $updatedData);
+    $response = $this->patch(route('rooms.update', $room->id), $updatedData);
 
     // Assert
     $response->assertRedirect(route('rooms.index'));
     $this->assertDatabaseHas('rooms', array_merge(['id' => $room->id], $updatedData));
+});
+
+test('update endpoint supports partial updates', function () {
+    $room = Room::factory()->create(['name' => 'Old Name', 'grid_rows' => 5, 'grid_cols' => 5]);
+
+    // Chỉ cập nhật tên
+    $response = $this->patch(route('rooms.update', $room->id), ['name' => 'New Name']);
+
+    $this->assertDatabaseHas('rooms', [
+        'id' => $room->id,
+        'name' => 'New Name',
+        'grid_rows' => 5, // Giữ nguyên giá trị cũ
+        'grid_cols' => 5, // Giữ nguyên giá trị cũ
+    ]);
 });
 
 test('destroy endpoint removes room', function () {

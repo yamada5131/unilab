@@ -14,14 +14,16 @@ class Machine extends Model
 
     use HasUuids;
 
+    protected $guarded = [];
+
     /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
      */
     protected $casts = [
-        // 'is_online' => 'boolean',
-        // 'last_seen' => 'datetime',
+        'is_online' => 'boolean',
+        'last_seen' => 'datetime',
     ];
 
     /**

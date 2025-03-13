@@ -25,7 +25,7 @@ class RoomController extends Controller
 
         Room::create($validated);
 
-        return redirect()->back();
+        return to_route('rooms.index');
     }
 
     public function show(string $id): Response
@@ -45,7 +45,7 @@ class RoomController extends Controller
 
         Room::findOrFail($id)->update($validated);
 
-        return redirect()->back();
+        return to_route('rooms.index');
     }
 
     public function destroy(string $id): RedirectResponse

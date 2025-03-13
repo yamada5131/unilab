@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\ComputerController;
+use App\Http\Controllers\MachineController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Foundation\Application;
@@ -48,9 +48,9 @@ Route::middleware('auth')->group(function () {
         ->only(['index', 'store', 'show', 'update', 'destroy']);
 
     // Computer management
-    Route::resource('computers', ComputerController::class)
+    Route::resource('computers', MachineController::class)
         ->only(['store', 'update', 'destroy']);
-    Route::post('/computers/{id}/command', [ComputerController::class, 'sendCommand'])
+    Route::post('/computers/{id}/command', [MachineController::class, 'sendCommand'])
         ->name('computers.command');
 });
 
