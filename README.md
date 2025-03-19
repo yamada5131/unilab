@@ -1,37 +1,308 @@
 # UniLab - Hệ thống quản lý phòng máy thực hành
 
-## Giới thiệu
+## 1. Giới thiệu
+
 UniLab là một hệ thống quản lý phòng máy thực hành cho trường đại học/cao đẳng, cung cấp khả năng giám sát và điều khiển máy tính từ xa thông qua giao diện web.
 
-## Kiến trúc hệ thống
+## 2. Kiến trúc hệ thống
 
-### Thành phần chính
+### 2.1 Tổng quan kiến trúc
+
 - **Dashboard (Web UI)**: Giao diện người dùng cho admin, được xây dựng bằng Inertia.js với Vue.js
 - **Laravel Server**: Backend API server, sử dụng Laravel framework
 - **Agent**: Phần mềm chạy trên máy tính client, được phát triển bằng Python
 - **Message Queue**: RabbitMQ để truyền lệnh từ server đến agent
 - **Database**: Supabase - nền tảng database PostgreSQL, sử dụng để lưu trữ thông tin phòng, máy, lệnh và kết quả
 
-### Quy trình tạo và sử dụng Agent Installation Scripts
+### 2.2 Thiết kế Message Queue
 
-#### Tổng quan về Installation Scripts
+Hệ thống UniLab sử dụng RabbitMQ làm Message Queue để giao tiếp giữa Laravel Server và Agent, đảm bảo việc truyền lệnh và cập nhật đáng tin cậy, có khả năng mở rộng.
+
+#### 2.2.1 Kiến trúc RabbitMQ
+
+```mermaid
+
+graph TD
+    subgraph RabbitMQ
+        EX_CMD[Exchange: command_exchange]
+        EX_UPDATE[Exchange: update_exchange]
+
+        EX_CMD -->|routing_key=command.*| Q_CMD_ROOM
+        EX_CMD -->|routing_key=command.*| Q_CMD_COMPUTER
+        EX_UPDATE -->|type=fanout| Q_UPDATE_ALL
+    end
+
+    subgraph Rooms
+        Q_CMD_ROOM(Queue: command.room.A1-404)
+        Q_CMD_ROOM --> Agent1
+        Q_CMD_ROOM --> Agent2
+    end
+
+    subgraph Computers
+        Q_CMD_COMPUTER(Queue: command.computer.550e8400)
+        Q_CMD_COMPUTER --> Agent3
+    end
+
+    subgraph Global Updates
+        Q_UPDATE_ALL(Queue: update.all)
+        Q_UPDATE_ALL --> AllAgents
+    end
+```
+
+#### 2.2.2 Cấu trúc Exchange và Routing
+
+| Thành phần       | Loại Exchange | Routing Key Pattern         | Mục đích                         |
+| ---------------- | ------------- | --------------------------- | -------------------------------- |
+| command_exchange | Topic         | command.<scope>.<target>    | Điều khiển máy tính/phòng cụ thể |
+| update_exchange  | Fanout        | N/A                         | Cập nhật toàn hệ thống           |
+| events_exchange  | Topic         | events.<type>.<computer_id> | Nhận sự kiện từ các agent        |
+
+#### 2.2.3 Routing Key Design
+
+| Pattern                      | Ví dụ                     | Mô tả                     |
+| ---------------------------- | ------------------------- | ------------------------- |
+| command.room.\<room_id\>     | command.room.A1-404       | Lệnh cho toàn bộ phòng    |
+| command.computer.\<comp_id\> | command.computer.550e8400 | Lệnh cho máy tính cụ thể  |
+| command.all                  | command.all               | Lệnh cho toàn bộ hệ thống |
+
+#### 2.2.4 Cấu trúc message cập nhật
+
+```json
+{
+    "type": "SYSTEM_UPDATE",
+    "payload": {
+        "version": "1.1.0",
+        "release_date": "2025-03-15",
+        "mandatory": true,
+        "checksum": "sha256:9f86d081...",
+        "download_url": "https://unilab.example.com/updates/v1.1.0",
+        "changelog": ["Cải thiện hiệu suất", "Sửa lỗi bảo mật quan trọng"]
+    },
+    "conditions": {
+        "min_agent_version": "1.0.2",
+        "os_requirements": ["windows >= 10", "linux >= ubuntu20.04"]
+    }
+}
+```
+
+### 2.3 Mô hình dữ liệu
+
+#### 2.3.1 Các entity chính
+
+#### 2.3.2 Quan hệ
+
+## 3. Quy trình hoạt động
+
+Hệ thống UniLab hoạt động thông qua các luồng xử lý chính như sau:
+
+### 3.1. Thiết lập ban đầu và cài đặt Agent
+
+```mermaid
+sequenceDiagram
+    actor U as Admin User
+    participant D as Dashboard (Web UI)
+    participant S as Laravel Server
+    participant DB as Database
+    participant DP as Deployment Tools<br>(GP/SCCM/Ansible)
+    participant A as Agent(s)
+
+    %% Thêm máy tính vào hệ thống
+    U->>+D: Thêm máy mới hoặc import danh sách máy
+    D->>+S: POST /computers<br>(kèm thông tin phòng, vị trí, MAC address)
+    activate S
+    S->>S: Sinh secret key cho mỗi máy<br>sk_[random16chars]
+    S->>+DB: Lưu máy + hash của secret key
+    deactivate DB
+    S-->>-D: Trả về danh sách máy đã thêm
+    deactivate S
+
+    %% Tạo installation scripts
+    U->>+D: Tạo scripts cài đặt
+    D->>+S: GET /api/computers/{id}/installation-script
+    S->>+DB: Lấy thông tin máy
+    DB-->>-S: Trả về thông tin máy
+    S->>S: Sinh script với thông tin định danh:<br>- computer_id<br>- MAC address<br>- room_id<br>- location<br>- secret_key (plaintext)
+    S-->>-D: Trả về scripts (PowerShell/Bash)
+    D-->>-U: Hiển thị scripts
+
+    %% Triển khai cài đặt
+    alt Cài đặt trực tiếp
+        U->>+A: Chạy script trên từng máy tính
+    else Triển khai từ xa
+        U->>+DP: Upload scripts + cấu hình triển khai
+        DP->>+A: Triển khai scripts đến nhiều máy
+        deactivate DP
+    end
+
+    %% Cài đặt Agent
+    activate A
+    A->>A: Tải Agent từ repository
+    A->>A: Tạo file cấu hình với thông tin định danh
+    A->>A: Cài đặt Agent service
+    A->>A: Khởi động service
+    Note over A: Agent đã được cài đặt với<br>thông tin định danh và secret_key
+    deactivate A
+```
+
+### 3.2 Đăng ký và xác thực Agent
+
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant S as Laravel Server
+    participant DB as Database
+
+    A->>+S: POST /api/agent/register<br>(gửi MAC, computer_id, secret_key, và thông tin phần cứng)
+    S->>+DB: Xác minh thông tin định danh<br>và cập nhật thông tin phần cứng
+    DB-->>-S: Kết quả xác minh
+    alt Tìm thấy máy tính
+        S-->>A: 200 OK - Trả về thông tin cấu hình cơ bản
+        Note over S,A: Thông tin bao gồm:<br>- Computer ID<br>- Room ID/Name<br>- Polling interval<br>- Logging level<br>- Registration token tạm thời
+    else Không tìm thấy
+        S-->>-A: 404 Not Found - Máy chưa được đăng ký
+        Note over A: Agent sẽ thử lại sau một khoảng thời gian (5 phút)
+    end
+
+    A->>+S: POST /api/agent/token<br>(kèm MAC, hostname và registration token)
+    Note right of S: Server kiểm tra thông tin xác thực<br>và tạo token cho Agent
+    S->>+DB: Lưu token và thông tin kết nối
+    DB-->>-S: Xác nhận lưu thành công
+    S-->>-A: Trả về token (personal access token), computer_id, và<br>thông tin kết nối MQ (host, port, credentials, routing_key)
+    activate A
+    Note over A: Agent lưu token và cấu hình<br>để sử dụng cho các request sau
+    Note over A: Routing key có dạng:<br>commands.room_{room_id}.computer_{id}
+    deactivate A
+```
+
+### 3.3 Cơ chế heartbeat và giám sát
+
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant S as Laravel Server
+    participant DB as Database
+
+    loop Mỗi 5 phút
+        A->>+S: POST /api/agent/heartbeat<br>(kèm thông tin status, CPU, RAM, disk usage)
+        Note over A,S: Gửi kèm token trong header<br>Authorization: Bearer {token}
+        S->>+DB: Cập nhật trạng thái online và thông tin máy
+        DB-->>-S: Xác nhận cập nhật
+        S-->>-A: 200 OK hoặc cấu hình mới (nếu có)
+    end
+```
+
+### 3.4 Xử lý và thực thi lệnh
+
+```mermaid
+sequenceDiagram
+    actor U as Admin User
+    participant D as Dashboard (Web UI)
+    participant S as Laravel Server
+    participant DB as Database
+    participant MQ as Message Queue
+    participant W as Laravel Worker
+    participant A as Agent
+
+    U->>+D: Tạo lệnh cho máy tính
+    D->>+S: POST /api/commands<br>(Create Command cho 1 hoặc nhiều máy)
+    S->>S: Validate request data
+    S->>+DB: Insert command record<br>(status="pending", type=SHUTDOWN/INSTALL/etc.)
+    DB-->>-S: Xác nhận lưu thành công
+    S->>+MQ: Enqueue job into Laravel Queue (SendCommandJob)
+    MQ-->>-S: Job đã được enqueue
+    S-->>-D: Xác nhận tạo lệnh thành công
+    D-->>-U: Thông báo lệnh đã được tạo
+
+    MQ->>+W: Dequeue SendCommandJob
+    W->>+DB: Retrieve command record
+    DB-->>-W: Thông tin command
+    W->>+MQ: Publish command message<br>to RabbitMQ channel (với routing key tương ứng)
+    Note right of W: Command format:<br>{id, type, params, payload}
+    MQ-->>-W: Message đã được publish
+    deactivate W
+
+    A->>+MQ: Subscribe for command messages<br>(dựa trên routing key của máy/phòng)
+    MQ-->>-A: Deliver command message
+
+    activate A
+    A->>A: Execute command<br>(SHUTDOWN, INSTALL, UPDATE, etc.)
+    Note over A: Timeout sau 10 phút<br>nếu lệnh không hoàn thành
+    A->>+S: POST /api/agent/command_result<br>(command_id, status=done/error, message)
+    Note over A,S: Gửi kèm token trong header<br>Authorization: Bearer {token}
+    deactivate A
+    S->>+DB: Update command record<br>(status, completed_at, result_message)
+    DB-->>-S: Xác nhận cập nhật thành công
+    S-->>-A: 200 OK
+```
+
+### 3.5 Xem kết quả thực thi
+
+```mermaid
+sequenceDiagram
+    actor U as Admin User
+    participant D as Dashboard (Web UI)
+    participant S as Laravel Server
+    participant DB as Database
+
+    U->>+D: Xem kết quả thực thi lệnh
+    D->>+S: GET /api/commands/{id}
+    S->>+DB: Query command details
+    DB-->>-S: Thông tin lệnh và kết quả
+    S-->>-D: Trả về thông tin lệnh và kết quả
+    D-->>-U: Hiển thị kết quả thực thi
+```
+
+### 3.6 Cơ chế Cập nhật Tự động
+
+Luồng cập nhật phiên bản:
+
+```mermaid
+
+sequenceDiagram
+    participant A as Agent
+    participant S as Laravel Server
+    participant MQ as RabbitMQ
+    participant R as Repository
+
+    S->>MQ: Publish update command (fanout)
+    Note right of S: Khi phát hiện phiên bản mới
+    MQ->>A: Deliver update message
+    A->>R: Check package metadata
+    R-->>A: Return latest version info
+    alt Có bản mới
+        A->>R: Download update package
+        A->>A: Verify checksum
+        A->>A: Apply update
+        A->>S: POST /api/agent/update_result
+    else Đã là phiên bản mới nhất
+        A->>A: Skip update
+    end
+```
+
+## 4. Agent Installation Scripts
+
+### 4.1 Tổng quan về Installation Scripts
+
 Thay vì sử dụng installer truyền thống, hệ thống tạo script cài đặt tự động cho từng máy tính. Script này sẽ thực hiện việc tải, cài đặt và cấu hình Agent để kết nối với server.
 
-#### Quy trình tạo Installation Scripts
+### 4.2 Quy trình tạo Installation Scripts
+
 1. **Tạo Script Cá nhân hóa**:
-   - Admin chọn máy tính cần cài đặt Agent trong Dashboard
-   - Hệ thống sinh script cài đặt (PowerShell/Bash) riêng cho máy tính đó
-   - Script được tạo với các thông số nhận dạng máy tính đã được định nghĩa trước
+
+    - Admin chọn máy tính cần cài đặt Agent trong Dashboard
+    - Hệ thống sinh script cài đặt (PowerShell/Bash) riêng cho máy tính đó
+    - Script được tạo với các thông số nhận dạng máy tính đã được định nghĩa trước
 
 2. **Nội dung Script**:
-   - Tải xuống phần mềm Agent từ repository
-   - Tạo file cấu hình với thông tin đặc thù cho máy tính
-   - Cài đặt Agent và đăng ký nó như service hệ thống
-   - Khởi động service và xác minh kết nối với server
+    - Tải xuống phần mềm Agent từ repository
+    - Tạo file cấu hình với thông tin đặc thù cho máy tính
+    - Cài đặt Agent và đăng ký nó như service hệ thống
+    - Khởi động service và xác minh kết nối với server
 
-#### Ví dụ về Installation Script
+### 4.3 Ví dụ về Installation Script
 
 **PowerShell Script (Windows):**
+
 ```powershell
 # UniLab Agent Installation Script
 # Auto-generated for Computer: LAB-PC-42 in Room: A1-404
@@ -89,596 +360,522 @@ if ($Status -eq "Running") {
 }
 ```
 
-#### Ưu điểm của phương pháp Script tự động
+### 4.4 Ưu điểm và quy trình sử dụng
+
 1. **Tính linh hoạt**: Dễ dàng điều chỉnh cho từng hệ điều hành và môi trường
 2. **Minh bạch**: Admin có thể xem và hiểu chính xác những gì script thực hiện
 3. **Khắc phục sự cố**: Dễ dàng thêm các bước chẩn đoán và xử lý lỗi
 4. **Tự động hóa**: Hỗ trợ triển khai hàng loạt thông qua Group Policy/Ansible
 
 #### Quy trình sử dụng
+
 1. **Tải script**: Admin tải script từ Dashboard
 2. **Chạy script**: Admin chạy script trên máy tính đích với quyền admin
 3. **Xác minh**: Script tự động cài đặt, cấu hình và khởi động Agent
 4. **Đăng ký**: Agent khi khởi động sẽ tự động đăng ký với server
 
-#### Triển khai hàng loạt
+### 4.5 Triển khai hàng loạt
+
 Hệ thống hỗ trợ cài đặt Agent trên nhiều máy tính cùng lúc mà không cần admin phải đi từng máy:
 
 1. **Sử dụng Group Policy (cho Windows domain)**:
-   - Admin tạo scripts cho nhiều máy từ Dashboard
-   - Đóng gói scripts vào package MSI hoặc Group Policy Object (GPO)
-   - Triển khai qua Group Policy trong Active Directory
-   - Scripts tự động chạy khi máy khởi động/đăng nhập
+
+    - Admin tạo scripts cho nhiều máy từ Dashboard
+    - Đóng gói scripts vào package MSI hoặc Group Policy Object (GPO)
+    - Triển khai qua Group Policy trong Active Directory
+    - Scripts tự động chạy khi máy khởi động/đăng nhập
 
 2. **Sử dụng công cụ phân phối từ xa**:
-   ```powershell
-   # Ví dụ script PowerShell để triển khai từ xa
-   $computers = Get-Content "lab-computers.txt"
-   $scriptFolder = "C:\Scripts\InstallationScripts\"
 
-   foreach ($computer in $computers) {
-       # Kiểm tra kết nối
-       if (Test-Connection $computer -Count 1 -Quiet) {
-           # Sao chép script cài đặt
-           Copy-Item "$scriptFolder\$computer-install.ps1" "\\$computer\c$\Temp\"
-           
-           # Chạy script từ xa với đặc quyền admin
-           Invoke-Command -ComputerName $computer -ScriptBlock {
-               Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File C:\Temp\$using:computer-install.ps1" -Verb RunAs
-           }
-       }
-   }
-   ```
+    ```powershell
+    # Ví dụ script PowerShell để triển khai từ xa
+    $computers = Get-Content "lab-computers.txt"
+    $scriptFolder = "C:\Scripts\InstallationScripts\"
+
+    foreach ($computer in $computers) {
+        # Kiểm tra kết nối
+        if (Test-Connection $computer -Count 1 -Quiet) {
+            # Sao chép script cài đặt
+            Copy-Item "$scriptFolder\$computer-install.ps1" "\\$computer\c$\Temp\"
+
+            # Chạy script từ xa với đặc quyền admin
+            Invoke-Command -ComputerName $computer -ScriptBlock {
+                Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File C:\Temp\$using:computer-install.ps1" -Verb RunAs
+            }
+        }
+    }
+    ```
 
 3. **Sử dụng công cụ quản lý cấu hình**:
-   - SCCM (Microsoft System Center Configuration Manager)
-   - Ansible (cho Linux/macOS)
-   - Puppet hoặc Chef
+    - SCCM (Microsoft System Center Configuration Manager)
+    - Ansible (cho Linux/macOS)
+    - Puppet hoặc Chef
 
-#### Cấu trúc thông tin định danh
+### 4.6 Cấu trúc thông tin định danh
+
 Mỗi script cài đặt chứa thông tin định danh riêng cho từng máy tính:
 
 ```json
 // Cấu trúc identification trong config.json
 {
-  "identification": {
-    "computer_id": "550e8400-e29b-41d4-a716-446655440000",
-    "mac_address": "00:1B:44:11:3A:B7", 
-    "room_id": "123",
-    "location": "R3-S5",
-    "expected_hostname": "LAB-PC-42"
-  },
-  "security": {
-    "secret_key": "sk_wAb5DcE2fG3hI4jK5"
-  }
+    "identification": {
+        "computer_id": "550e8400-e29b-41d4-a716-446655440000",
+        "mac_address": "00:1B:44:11:3A:B7",
+        "room_id": "123",
+        "location": "R3-S5",
+        "expected_hostname": "LAB-PC-42"
+    },
+    "security": {
+        "secret_key": "sk_wAb5DcE2fG3hI4jK5"
+    }
 }
 ```
 
-#### Về Secret Key
+### 4.7 Về Secret Key
+
 Secret key đóng vai trò quan trọng trong quy trình xác thực Agent:
 
 1. **Mục đích**:
-   - Cơ chế xác thực một lần trong quá trình đăng ký ban đầu
-   - Ngăn chặn việc máy tính không xác định tự đăng ký vào hệ thống
-   - Đóng vai trò "mật khẩu tạm thời" trước khi token hệ thống được cấp
+
+    - Cơ chế xác thực một lần trong quá trình đăng ký ban đầu
+    - Ngăn chặn việc máy tính không xác định tự đăng ký vào hệ thống
+    - Đóng vai trò "mật khẩu tạm thời" trước khi token hệ thống được cấp
 
 2. **Lưu trữ**:
-   - **Database**: Lưu dạng hash cùng với bản ghi máy tính
-   - **Script**: Nhúng dạng plaintext để sử dụng khi cài đặt
-   - **Agent**: Lưu tạm thời trong quá trình đăng ký, xóa sau khi nhận token
+
+    - **Database**: Lưu dạng hash cùng với bản ghi máy tính
+    - **Script**: Nhúng dạng plaintext để sử dụng khi cài đặt
+    - **Agent**: Lưu tạm thời trong quá trình đăng ký, xóa sau khi nhận token
 
 3. **Sinh và xác thực**:
-   ```php
-   // Sinh secret key (Laravel)
-   $secretKey = 'sk_' . Str::random(16);
-   $computer->secret_key = Hash::make($secretKey);
-   
-   // Xác thực secret key (Laravel)
-   if (!Hash::check($request->secret_key, $computer->secret_key)) {
-       return response()->json(['error' => 'Invalid secret key'], 401);
-   }
-   ```
+
+    ```php
+    // Sinh secret key (Laravel)
+    $secretKey = 'sk_' . Str::random(16);
+    $computer->secret_key = Hash::make($secretKey);
+
+    // Xác thực secret key (Laravel)
+    if (!Hash::check($request->secret_key, $computer->secret_key)) {
+        return response()->json(['error' => 'Invalid secret key'], 401);
+    }
+    ```
 
 4. **Vòng đời**:
-   - Được tạo khi admin thêm máy tính vào hệ thống
-   - Sử dụng trong quá trình đăng ký Agent
-   - Bị vô hiệu hóa sau lần sử dụng đầu tiên thành công
-   - Có thể tạo lại nếu cần thiết (ví dụ: cài đặt lại Agent)
+    - Được tạo khi admin thêm máy tính vào hệ thống
+    - Sử dụng trong quá trình đăng ký Agent
+    - Bị vô hiệu hóa sau lần sử dụng đầu tiên thành công
+    - Có thể tạo lại nếu cần thiết (ví dụ: cài đặt lại Agent)
 
-### Luồng hoạt động của hệ thống
+## 5. API Reference
 
-Hệ thống UniLab hoạt động thông qua các luồng xử lý chính như sau:
+### 5.1 API Đăng ký và Xác thực Agent
 
-#### 1. Thiết lập ban đầu và cài đặt Agent
-```mermaid
-sequenceDiagram
-    actor U as Admin User
-    participant D as Dashboard (Web UI)
-    participant S as Laravel Server
-    participant DB as Database
-    participant DP as Deployment Tools<br>(GP/SCCM/Ansible)
-    participant A as Agent(s)
+#### 5.1.1 **POST /api/agent/register**
 
-    %% Thêm máy tính vào hệ thống
-    U->>+D: Thêm máy mới hoặc import danh sách máy
-    D->>+S: POST /computers<br>(kèm thông tin phòng, vị trí, MAC address)
-    activate S
-    S->>S: Sinh secret key cho mỗi máy<br>sk_[random16chars]
-    S->>+DB: Lưu máy + hash của secret key
-    deactivate DB
-    S-->>-D: Trả về danh sách máy đã thêm
-    deactivate S
-    
-    %% Tạo installation scripts
-    U->>+D: Tạo scripts cài đặt
-    D->>+S: GET /api/computers/{id}/installation-script
-    S->>+DB: Lấy thông tin máy
-    DB-->>-S: Trả về thông tin máy
-    S->>S: Sinh script với thông tin định danh:<br>- computer_id<br>- MAC address<br>- room_id<br>- location<br>- secret_key (plaintext)
-    S-->>-D: Trả về scripts (PowerShell/Bash)
-    D-->>-U: Hiển thị scripts
-    
-    %% Triển khai cài đặt
-    alt Cài đặt trực tiếp
-        U->>+A: Chạy script trên từng máy tính
-    else Triển khai từ xa
-        U->>+DP: Upload scripts + cấu hình triển khai
-        DP->>+A: Triển khai scripts đến nhiều máy
-        deactivate DP
-    end
-    
-    %% Cài đặt Agent
-    activate A
-    A->>A: Tải Agent từ repository
-    A->>A: Tạo file cấu hình với thông tin định danh
-    A->>A: Cài đặt Agent service
-    A->>A: Khởi động service
-    Note over A: Agent đã được cài đặt với<br>thông tin định danh và secret_key
-    deactivate A
-```
+    - **Mô tả**: Agent đăng ký với hệ thống khi khởi động đầu tiên
 
-#### 2. Đăng ký và xác thực Agent
-```mermaid
-sequenceDiagram
-    participant A as Agent
-    participant S as Laravel Server
-    participant DB as Database
+- **Request**:
 
-    A->>+S: POST /api/agent/register<br>(gửi MAC, computer_id, secret_key, và thông tin phần cứng)
-    S->>+DB: Xác minh thông tin định danh<br>và cập nhật thông tin phần cứng
-    DB-->>-S: Kết quả xác minh
-    alt Tìm thấy máy tính
-        S-->>A: 200 OK - Trả về thông tin cấu hình cơ bản
-        Note over S,A: Thông tin bao gồm:<br>- Computer ID<br>- Room ID/Name<br>- Polling interval<br>- Logging level<br>- Registration token tạm thời
-    else Không tìm thấy
-        S-->>-A: 404 Not Found - Máy chưa được đăng ký
-        Note over A: Agent sẽ thử lại sau một khoảng thời gian (5 phút)
-    end
-    
-    A->>+S: POST /api/agent/token<br>(kèm MAC, hostname và registration token)
-    Note right of S: Server kiểm tra thông tin xác thực<br>và tạo token cho Agent
-    S->>+DB: Lưu token và thông tin kết nối
-    DB-->>-S: Xác nhận lưu thành công
-    S-->>-A: Trả về token (personal access token), computer_id, và<br>thông tin kết nối MQ (host, port, credentials, routing_key)
-    activate A
-    Note over A: Agent lưu token và cấu hình<br>để sử dụng cho các request sau
-    Note over A: Routing key có dạng:<br>commands.room_{room_id}.computer_{id}
-    deactivate A
-```
+    ```json
+    {
+        "computer_id": "550e8400-e29b-41d4-a716-446655440000",
+        "mac_address": "00:1B:44:11:3A:B7",
+        "secret_key": "sk_wAb5DcE2fG3hI4jK5",
+        "hostname": "LAB-PC-42",
+        "os": {
+            "name": "Windows",
+            "version": "10 Pro",
+            "build": "22H2"
+        },
+        "specs": {
+            "cpu": "Intel Core i5-10400",
+            "cpu_cores": 6,
+            "cpu_threads": 12,
+            "ram_total": 17179869184,
+            "disk_total": 500107862016,
+            "disk_free": 213546065920,
+            "gpu": "Intel UHD Graphics 630"
+        },
+        "agent_version": "1.0.5",
+        "installation_timestamp": 1709125482
+    }
+    ```
 
-#### 3. Cơ chế heartbeat và giám sát
-```mermaid
-sequenceDiagram
-    participant A as Agent
-    participant S as Laravel Server
-    participant DB as Database
-    
-    loop Mỗi 5 phút
-        A->>+S: POST /api/agent/heartbeat<br>(kèm thông tin status, CPU, RAM, disk usage)
-        Note over A,S: Gửi kèm token trong header<br>Authorization: Bearer {token}
-        S->>+DB: Cập nhật trạng thái online và thông tin máy
-        DB-->>-S: Xác nhận cập nhật
-        S-->>-A: 200 OK hoặc cấu hình mới (nếu có)
-    end
-```
+- **Quy trình xác minh**:
 
-#### 4. Xử lý và thực thi lệnh
-```mermaid
-sequenceDiagram
-    actor U as Admin User
-    participant D as Dashboard (Web UI)
-    participant S as Laravel Server
-    participant DB as Database
-    participant MQ as Message Queue
-    participant W as Laravel Worker
-    participant A as Agent
+    ```php
+    // Quy trình xác minh (Laravel)
+    $computer = Computer::find($request->computer_id);
 
-    U->>+D: Tạo lệnh cho máy tính
-    D->>+S: POST /api/commands<br>(Create Command cho 1 hoặc nhiều máy)
-    S->>S: Validate request data
-    S->>+DB: Insert command record<br>(status="pending", type=SHUTDOWN/INSTALL/etc.)
-    DB-->>-S: Xác nhận lưu thành công
-    S->>+MQ: Enqueue job into Laravel Queue (SendCommandJob)
-    MQ-->>-S: Job đã được enqueue
-    S-->>-D: Xác nhận tạo lệnh thành công
-    D-->>-U: Thông báo lệnh đã được tạo
-    
-    MQ->>+W: Dequeue SendCommandJob
-    W->>+DB: Retrieve command record
-    DB-->>-W: Thông tin command
-    W->>+MQ: Publish command message<br>to RabbitMQ channel (với routing key tương ứng)
-    Note right of W: Command format:<br>{id, type, params, payload}
-    MQ-->>-W: Message đã được publish
-    deactivate W
-    
-    A->>+MQ: Subscribe for command messages<br>(dựa trên routing key của máy/phòng)
-    MQ-->>-A: Deliver command message
-    
-    activate A
-    A->>A: Execute command<br>(SHUTDOWN, INSTALL, UPDATE, etc.)
-    Note over A: Timeout sau 10 phút<br>nếu lệnh không hoàn thành
-    A->>+S: POST /api/agent/command_result<br>(command_id, status=done/error, message)
-    Note over A,S: Gửi kèm token trong header<br>Authorization: Bearer {token}
-    deactivate A
-    S->>+DB: Update command record<br>(status, completed_at, result_message)
-    DB-->>-S: Xác nhận cập nhật thành công
-    S-->>-A: 200 OK
-```
+    if (!$computer ||
+        $computer->mac_address !== $request->mac_address ||
+        !Hash::check($request->secret_key, $computer->secret_key)) {
+        return response()->json(['error' => 'Invalid identification'], 401);
+    }
 
-#### 5. Xem kết quả thực thi
-```mermaid
-sequenceDiagram
-    actor U as Admin User
-    participant D as Dashboard (Web UI)
-    participant S as Laravel Server
-    participant DB as Database
+    // Đánh dấu secret_key đã được sử dụng
+    $computer->secret_key_used = true;
+    $computer->save();
+    ```
 
-    U->>+D: Xem kết quả thực thi lệnh
-    D->>+S: GET /api/commands/{id}
-    S->>+DB: Query command details
-    DB-->>-S: Thông tin lệnh và kết quả
-    S-->>-D: Trả về thông tin lệnh và kết quả
-    D-->>-U: Hiển thị kết quả thực thi
-```
+- **Response Success** (200 OK):
 
-## Chi tiết API Endpoints
+    ```json
+    {
+        "success": true,
+        "room": {
+            "id": "123",
+            "name": "Lab A1-404"
+        },
+        "config": {
+            "polling_interval": 300,
+            "logging_level": "info",
+            "client_update": {
+                "available": false,
+                "version": null
+            }
+        },
+        "registration_token": "temp_token_for_next_step",
+        "token_expires_at": "2025-03-09T12:30:00Z"
+    }
+    ```
 
-### 1. API Đăng ký và Xác thực Agent
+- **Response Failure** (404 Not Found):
 
-#### **POST /api/agent/register**
-   - **Mô tả**: Agent đăng ký với hệ thống khi khởi động đầu tiên
-   - **Request**:
-     ```json
-     {
-       "computer_id": "550e8400-e29b-41d4-a716-446655440000", 
-       "mac_address": "00:1B:44:11:3A:B7",
-       "secret_key": "sk_wAb5DcE2fG3hI4jK5",
-       "hostname": "LAB-PC-42",
-       "os": {
-         "name": "Windows",
-         "version": "10 Pro", 
-         "build": "22H2"
-       },
-       "specs": {
-         "cpu": "Intel Core i5-10400",
-         "cpu_cores": 6,
-         "cpu_threads": 12,
-         "ram_total": 17179869184,
-         "disk_total": 500107862016,
-         "disk_free": 213546065920,
-         "gpu": "Intel UHD Graphics 630"
-       },
-       "agent_version": "1.0.5",
-       "installation_timestamp": 1709125482
-     }
-     ```
-   - **Quy trình xác minh**:
-     ```php
-     // Quy trình xác minh (Laravel)
-     $computer = Computer::find($request->computer_id);
+    ```json
+    {
+        "success": false,
+        "message": "Computer not found in system",
+        "retry_after": 300
+    }
+    ```
 
-     if (!$computer || 
-         $computer->mac_address !== $request->mac_address ||
-         !Hash::check($request->secret_key, $computer->secret_key)) {
-         return response()->json(['error' => 'Invalid identification'], 401);
-     }
+#### 5.1.2 **POST /api/agent/token**
 
-     // Đánh dấu secret_key đã được sử dụng 
-     $computer->secret_key_used = true;
-     $computer->save();
-     ```
-   - **Response Success** (200 OK):
-     ```json
-     {
-       "success": true,
-       "room": {
-         "id": "123",
-         "name": "Lab A1-404"
-       },
-       "config": {
-         "polling_interval": 300,
-         "logging_level": "info",
-         "client_update": {
-           "available": false,
-           "version": null
-         }
-       },
-       "registration_token": "temp_token_for_next_step",
-       "token_expires_at": "2025-03-09T12:30:00Z"
-     }
-     ```
-   - **Response Failure** (404 Not Found):
-     ```json
-     {
-       "success": false,
-       "message": "Computer not found in system",
-       "retry_after": 300
-     }
-     ```
+- **Mô tả**: Lấy token xác thực cho Agent sau khi đăng ký thành công
+- **Request**:
 
-#### **POST /api/agent/token**
-   - **Mô tả**: Lấy token xác thực cho Agent sau khi đăng ký thành công
-   - **Request**:
-     ```json
-     {
-       "registration_token": "temp_token_for_next_step",
-       "computer_id": "550e8400-e29b-41d4-a716-446655440000",
-       "mac_address": "00:1B:44:11:3A:B7",
-       "hostname": "LAB-PC-42"
-     }
-     ```
-   - **Response** (200 OK):
-     ```json
-     {
-       "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-       "token_expires_at": "2025-04-09T00:00:00Z",
-       "mq_config": {
-         "host": "rabbitmq.example.com",
-         "port": 5672,
-         "username": "agent_user",
-         "password": "********",
-         "virtual_host": "/",
-         "exchange": "commands",
-         "routing_key": "commands.room_123.computer_550e8400"
-       },
-       "api_endpoints": {
-         "heartbeat": "/api/agent/heartbeat",
-         "command_result": "/api/agent/command_result",
-         "token_refresh": "/api/agent/refresh_token"
-       }
-     }
-     ```
+    ```json
+    {
+        "registration_token": "temp_token_for_next_step",
+        "computer_id": "550e8400-e29b-41d4-a716-446655440000",
+        "mac_address": "00:1B:44:11:3A:B7",
+        "hostname": "LAB-PC-42"
+    }
+    ```
 
-#### **Ý nghĩa của các tham số cấu hình**
+- **Response** (200 OK):
+
+    ```json
+    {
+        "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+        "token_expires_at": "2025-04-09T00:00:00Z",
+        "mq_config": {
+            "host": "rabbitmq.example.com",
+            "port": 5672,
+            "username": "agent_user",
+            "password": "********",
+            "virtual_host": "/",
+            "exchange": "commands",
+            "routing_key": "commands.room_123.computer_550e8400"
+        },
+        "api_endpoints": {
+            "heartbeat": "/api/agent/heartbeat",
+            "command_result": "/api/agent/command_result",
+            "token_refresh": "/api/agent/refresh_token"
+        }
+    }
+    ```
+
+#### 5.1.3 **Ý nghĩa của các tham số cấu hình**
 
 ##### **Config từ server**
+
 Các tham số cấu hình này đóng vai trò quan trọng trong việc kiểm soát hành vi của Agent:
 
 1. **`polling_interval: 300`**
-   - **Đơn vị**: Giây
-   - **Tác dụng**: Xác định tần suất Agent gửi heartbeat đến server
-   - **Ý nghĩa thực tế**: Mỗi 5 phút (300 giây), Agent sẽ gửi thông tin trạng thái lên server
-   - **Lợi ích**:
-     - Server biết máy tính có đang hoạt động hay không
-     - Giảm tải cho server và mạng (so với heartbeat quá thường xuyên)
-     - Có thể điều chỉnh tùy theo nhu cầu giám sát (giảm xuống khi cần giám sát chặt chẽ)
+
+    - **Đơn vị**: Giây
+    - **Tác dụng**: Xác định tần suất Agent gửi heartbeat đến server
+    - **Ý nghĩa thực tế**: Mỗi 5 phút (300 giây), Agent sẽ gửi thông tin trạng thái lên server
+    - **Lợi ích**:
+        - Server biết máy tính có đang hoạt động hay không
+        - Giảm tải cho server và mạng (so với heartbeat quá thường xuyên)
+        - Có thể điều chỉnh tùy theo nhu cầu giám sát (giảm xuống khi cần giám sát chặt chẽ)
 
 2. **`logging_level: "info"`**
-   - **Tác dụng**: Điều khiển mức độ chi tiết của thông tin log từ Agent
-   - **Các mức có thể có**:
-     - `debug`: Mọi thông tin, chi tiết nhất (hữu ích khi gỡ lỗi)
-     - `info`: Thông tin hoạt động thông thường
-     - `warning`: Chỉ ghi cảnh báo và lỗi 
-     - `error`: Chỉ ghi lỗi nghiêm trọng
-   - **Lợi ích**: Giúp quản lý kích thước file log và tìm kiếm thông tin quan trọng
+
+    - **Tác dụng**: Điều khiển mức độ chi tiết của thông tin log từ Agent
+    - **Các mức có thể có**:
+        - `debug`: Mọi thông tin, chi tiết nhất (hữu ích khi gỡ lỗi)
+        - `info`: Thông tin hoạt động thông thường
+        - `warning`: Chỉ ghi cảnh báo và lỗi
+        - `error`: Chỉ ghi lỗi nghiêm trọng
+    - **Lợi ích**: Giúp quản lý kích thước file log và tìm kiếm thông tin quan trọng
 
 3. **`client_update`**
-   - **Tác dụng**: Cơ chế tự động cập nhật Agent
-   - **Các tham số con**:
-     - `available: false`: Hiện không có bản cập nhật mới
-     - `version: null`: Không có phiên bản mới nào được xác định
-   - **Khi có cập nhật**:
-     ```json
-     "client_update": {
-       "available": true,
-       "version": "1.0.6",
-       "download_url": "https://unilab.example.com/downloads/agent/1.0.6/windows",
-       "force_update": false,
-       "changelog": "Cải thiện bảo mật, sửa lỗi kết nối"
-     }
-     ```
-   - **Lợi ích**: 
-     - Quản lý phiên bản phần mềm tập trung
-     - Tự động cập nhật không cần thủ công
-     - Đảm bảo tất cả Agent đều chạy phiên bản mới nhất
+    - **Tác dụng**: Cơ chế tự động cập nhật Agent
+    - **Các tham số con**:
+        - `available: false`: Hiện không có bản cập nhật mới
+        - `version: null`: Không có phiên bản mới nào được xác định
+    - **Khi có cập nhật**:
+
+        ```json
+        "client_update": {
+          "available": true,
+          "version": "1.0.6",
+          "download_url": "https://unilab.example.com/downloads/agent/1.0.6/windows",
+          "force_update": false,
+          "changelog": "Cải thiện bảo mật, sửa lỗi kết nối"
+        }
+        ```
+
+    - **Lợi ích**:
+        - Quản lý phiên bản phần mềm tập trung
+        - Tự động cập nhật không cần thủ công
+        - Đảm bảo tất cả Agent đều chạy phiên bản mới nhất
 
 Server có thể thay đổi các tham số này qua các lần heartbeat để điều chỉnh hành vi Agent từ xa.
 
-### 2. API Heartbeat và Trạng Thái
+### 5.2 API Heartbeat và Trạng Thái
 
-#### **POST /api/agent/heartbeat**
-   - **Mô tả**: Agent gửi trạng thái định kỳ
-   - **Headers**: `Authorization: Bearer {token}`
-   - **Request**:
-     ```json
-     {
-       "computer_id": "550e8400-e29b-41d4-a716-446655440000",
-       "status": "online",
-       "resources": {
-         "cpu_usage": 15.5,
-         "ram_usage": 4567452672,
-         "ram_total": 17179869184,
-         "disk_usage": 250500000000,
-         "disk_total": 500000000000
-       },
-       "agent_version": "1.0.5",
-       "uptime": 18542
-     }
-     ```
-   - **Response** (200 OK):
-     ```json
-     {
-       "success": true,
-       "config_changed": false
-     }
-     ```
+#### 5.2.1 **POST /api/agent/heartbeat**
 
-### 3. API Kết quả Lệnh
+- **Mô tả**: Agent gửi trạng thái định kỳ
+- **Headers**: `Authorization: Bearer {token}`
+- **Request**:
 
-#### **POST /api/agent/command_result**
-   - **Mô tả**: Agent gửi kết quả thực thi lệnh
-   - **Headers**: `Authorization: Bearer {token}`
-   - **Request**:
-     ```json
-     {
-       "command_id": "a1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
-       "status": "done", // hoặc "error"
-       "message": "Command executed successfully"
-     }
-     ```
-   - **Response** (200 OK):
-     ```json
-     {
-       "success": true,
-       "message": "Command status updated successfully"
-     }
-     ```
+    ```json
+    {
+        "computer_id": "550e8400-e29b-41d4-a716-446655440000",
+        "status": "online",
+        "resources": {
+            "cpu_usage": 15.5,
+            "ram_usage": 4567452672,
+            "ram_total": 17179869184,
+            "disk_usage": 250500000000,
+            "disk_total": 500000000000
+        },
+        "agent_version": "1.0.5",
+        "uptime": 18542
+    }
+    ```
 
-## Các loại lệnh hỗ trợ
+- **Response** (200 OK):
+
+    ```json
+    {
+        "success": true,
+        "config_changed": false
+    }
+    ```
+
+### 5.3 API Kết quả Lệnh
+
+#### 5.3.1 **POST /api/agent/command_result**
+
+- **Mô tả**: Agent gửi kết quả thực thi lệnh
+- **Headers**: `Authorization: Bearer {token}`
+- **Request**:
+
+    ```json
+    {
+        "command_id": "a1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d",
+        "status": "done", // hoặc "error"
+        "message": "Command executed successfully"
+    }
+    ```
+
+- **Response** (200 OK):
+
+    ```json
+    {
+        "success": true,
+        "message": "Command status updated successfully"
+    }
+    ```
+
+## 6. Các loại lệnh hỗ trợ
 
 1. **SHUTDOWN**: Tắt máy tính
-   - Params: `{ "delay": 60, "force": false }`
+
+    - Params: `{ "delay": 60, "force": false }`
 
 2. **RESTART**: Khởi động lại máy tính
-   - Params: `{ "delay": 30, "force": false }`
+
+    - Params: `{ "delay": 30, "force": false }`
 
 3. **INSTALL**: Cài đặt phần mềm
-   - Params: `{ "package": "vscode", "version": "latest" }`
+
+    - Params: `{ "package": "vscode", "version": "latest" }`
 
 4. **UPDATE**: Cập nhật hệ thống/phần mềm
-   - Params: `{ "target": "system" }` hoặc `{ "target": "application", "name": "chrome" }`
+
+    - Params: `{ "target": "system" }` hoặc `{ "target": "application", "name": "chrome" }`
 
 5. **EXECUTE**: Thực thi lệnh/script
-   - Params: `{ "command": "ipconfig /flushdns", "shell": "cmd" }`
+    - Params: `{ "command": "ipconfig /flushdns", "shell": "cmd" }`
 
-## Xử lý lỗi và phục hồi
+## 7. Xử lý lỗi và phục hồi
 
 1. **Mất kết nối**:
-   - Agent sẽ lưu cache lệnh chưa hoàn thành
-   - Tự động kết nối lại sau 30 giây và tiếp tục thực thi
+
+    - Agent sẽ lưu cache lệnh chưa hoàn thành
+    - Tự động kết nối lại sau 30 giây và tiếp tục thực thi
 
 2. **Lệnh thất bại**:
-   - Thử lại tối đa 3 lần với các lệnh quan trọng
-   - Ghi log chi tiết lỗi và gửi về server
+
+    - Thử lại tối đa 3 lần với các lệnh quan trọng
+    - Ghi log chi tiết lỗi và gửi về server
 
 3. **Token hết hạn**:
-   - Tự động làm mới token khi gặp lỗi 401 Unauthorized
-   - Quay lại quy trình đăng ký nếu không thể làm mới token
+    - Tự động làm mới token khi gặp lỗi 401 Unauthorized
+    - Quay lại quy trình đăng ký nếu không thể làm mới token
 
-## Roadmap phát triển UniLab
+## 8. Roadmap phát triển UniLab
 
-### Milestone 1: Cơ sở hạ tầng ✓
-- [x] ~~Thiết lập Database Schema (migrations, models, relationships)~~
-- [x] ~~Cấu hình Laravel Server cơ bản~~
-- [x] ~~Xây dựng API nhận kết quả từ Agent~~ 
-- [x] ~~Tích hợp RabbitMQ với Laravel~~
-- [x] ~~Cài đặt Laravel Sanctum cho API authentication~~
+## Phân loại ưu tiên theo MoSCoW
 
-### Milestone 2: Quản lý phòng và máy tính ⚠️
-- [x] ~~API CRUD cho phòng và máy tính~~
+- **M (Must have)**: Chức năng thiết yếu, không thể thiếu
+- **S (Should have)**: Quan trọng nhưng không khẩn cấp
+- **C (Could have)**: Mong muốn nhưng có thể bỏ qua
+- **W (Won't have)**: Sẽ được xem xét trong tương lai
+
+## 1. Core Infrastructure - Hạ tầng cốt lõi (M)
+
+- [x] Thiết lập Database Schema (migrations, models, relationships)
+- [x] Cấu hình Laravel Server cơ bản
+- [x] Thiết lập RabbitMQ và Message Queue architecture
+- [x] Cài đặt Laravel Sanctum cho API authentication
+- [ ] Security framework cho API endpoints
+- [ ] Cấu hình Cache và Queue workers
+
+## 2. Backend Core - Chức năng backend chính (M)
+
+- [x] API CRUD cho phòng và máy tính
 - [ ] Hệ thống sinh secret key bảo mật
-- [ ] Tính năng import/export danh sách máy
-- [ ] Unit tests cho các API endpoints
+- [x] Endpoint POST `/api/commands` và job xử lý
+- [ ] API tạo Installation Scripts
+- [ ] Endpoint đăng ký Agent (`/api/agent/register`)
+- [ ] Endpoint xác thực Agent (`/api/agent/token`)
+- [ ] Endpoint heartbeat (`/api/agent/heartbeat`)
+- [ ] API nhận kết quả lệnh từ Agent
 
-### Milestone 2.5: Giao diện Dashboard cơ bản ⚠️
-- [x] ~~Thiết kế hệ thống UI components sử dụng Vue.js~~
-- [x] ~~Xây dựng layout chính và navigation~~
-- [x] ~~Tích hợp authentication UI và quản lý phiên đăng nhập~~
-- [ ] Trang quản lý người dùng và phân quyền
-- [ ] Trang dashboard tổng quan với thống kê nhanh
-- [ ] Đảm bảo responsive design cho tất cả màn hình
+## 3. Agent Development - Phát triển Agent (M)
 
-### Milestone 3: Hệ thống phân phối lệnh ⚠️
-- [x] ~~Thiết lập RabbitMQ exchanges và routing patterns~~
-- [x] ~~Endpoint POST `/api/commands` và job xử lý~~
-- [ ] Phát triển module xử lý lệnh trong Agent
-- [ ] Triển khai các loại lệnh cơ bản (SHUTDOWN, RESTART, INSTALL, UPDATE, EXECUTE)
-- [ ] Integration tests cho luồng xử lý lệnh
+- [ ] Core Agent framework (Windows/Linux)
+- [ ] Module lắng nghe lệnh từ RabbitMQ
+- [ ] Module thực thi các lệnh cơ bản (SHUTDOWN, RESTART)
+- [ ] Module gửi heartbeat và thông tin tài nguyên
+- [ ] Module tự động cập nhật Agent
+- [ ] Cơ chế phục hồi khi mất kết nối
+- [ ] Xử lý token authentication
 
-### Milestone 3.5: Giao diện quản lý phòng và máy ⚠️
-- [x] ~~Giao diện Dashboard quản lý phòng học~~
-- [x] ~~Giao diện grid layout cho phòng máy~~
-- [ ] Thành phần UI hiển thị trạng thái máy tính
-- [ ] Giao diện thêm, sửa, xóa máy tính
-- [ ] Chức năng kéo-thả để sắp xếp vị trí máy tính trong phòng
-- [ ] Chức năng import/export danh sách máy tính
-- [ ] Tests cho các components UI
+## 4. Frontend Dashboard Core - Dashboard cơ bản (M)
 
-### Milestone 4: Agent và Installation Scripts
-- [ ] Xây dựng cấu trúc Agent cơ bản (Windows/Linux)
-- [ ] API tạo Installation Scripts (`/api/computers/{id}/installation-script`)
-- [ ] Giao diện tạo và tải scripts từ Dashboard
-- [ ] Công cụ triển khai hàng loạt (Group Policy, SCCM, Ansible)
-- [ ] Cơ chế tự phục hồi (self-healing) cho Agent
-- [ ] Tests đối với Agent trong các môi trường khác nhau
+- [x] Thiết kế hệ thống UI components sử dụng Vue.js
+- [x] Xây dựng layout chính và navigation
+- [x] Tích hợp authentication UI
+- [x] Giao diện quản lý phòng và máy tính
+- [x] Giao diện tạo và gửi lệnh đến agent
+- [ ] UI hiển thị trạng thái máy tính
+- [ ] Responsive design cho tất cả màn hình
 
-### Milestone 5: Đăng ký và xác thực Agent
-- [ ] Endpoint POST `/api/agent/register` (xác minh secret key)
-- [ ] Endpoint POST `/api/agent/token` (xử lý token xác thực)
-- [ ] Cài đặt luồng đăng ký và xác thực trong Agent
-- [ ] Xử lý token hết hạn và làm mới token
-- [ ] Security tests cho hệ thống xác thực
+## 5. Command & Control - Hệ thống điều khiển (M)
 
-### Milestone 6: Cơ chế heartbeat và giám sát
-- [ ] Endpoint POST `/api/agent/heartbeat`
-- [ ] Cơ chế thu thập thông tin tài nguyên trong Agent
-- [ ] Dashboard giám sát trạng thái máy tính real-time
+- [x] Thiết lập RabbitMQ exchanges và routing patterns
+- [ ] Command dispatcher từ server đến agent
+- [ ] Triển khai các loại lệnh cơ bản (SHUTDOWN, RESTART)
+- [ ] Tracking và hiển thị trạng thái lệnh
+- [ ] Hệ thống queuing commands khi agent offline
+- [ ] Xử lý retry cho các lệnh thất bại
+
+## 6. Agent Auto-Update - Cập nhật tự động (M)
+
+- [ ] Versioning system cho Agent
+- [ ] API endpoint cung cấp metadata về phiên bản mới
+- [ ] Module download và verify package cập nhật
+- [ ] Cơ chế cài đặt cập nhật và rollback nếu lỗi
+- [ ] Hệ thống phân phối cập nhật theo nhóm/phòng
+
+## 7. User Management - Quản lý người dùng (S)
+
+- [ ] Hệ thống phân quyền (RBAC)
+- [ ] Quản lý người dùng và nhóm quyền
+- [ ] Nhật ký hoạt động người dùng
+- [ ] Self-service password reset
+- [ ] Profile và cài đặt người dùng
+
+## 8. Advanced Monitoring - Giám sát nâng cao (S)
+
+- [ ] Dashboard giám sát real-time
+- [ ] Biểu đồ theo dõi hiệu suất
 - [ ] Hệ thống cảnh báo khi máy offline/quá tải
-- [ ] Performance tests cho hệ thống heartbeat
-
-### Milestone 6.5: UI giám sát và điều khiển
-- [ ] Dashboard giám sát real-time với thống kê tài nguyên
-- [ ] Biểu đồ theo dõi hiệu suất hệ thống
-- [x] ~~Giao diện gửi lệnh đến máy tính/nhóm máy tính~~
-- [ ] UI hiển thị lịch sử lệnh và trạng thái thực thi
+- [ ] Monitoring API thời gian thực
 - [ ] Trang trạng thái hệ thống (health monitoring)
-- [ ] Hệ thống thông báo và cảnh báo khi máy offline
 
-### Milestone 7: Xử lý lỗi và độ tin cậy
-- [ ] Cơ chế cache lệnh khi mất kết nối
-- [ ] Hệ thống retry cho lệnh thất bại
-- [ ] Cập nhật Agent tự động
-- [ ] Hệ thống ghi log chi tiết
-- [ ] Xử lý các scenario máy tính bị shutdown đột ngột
-- [ ] Chaos testing và recovery testing
+## 9. Advanced Commands - Lệnh nâng cao (S)
 
-### Milestone 7.5: UI báo cáo và phân tích
+- [ ] Lệnh INSTALL cho cài đặt phần mềm
+- [ ] Lệnh UPDATE cho cập nhật hệ thống/phần mềm
+- [ ] Lệnh EXECUTE cho thực thi script tùy chỉnh
+- [ ] Job scheduling cho lệnh định kỳ
+- [ ] Lệnh template và kịch bản tùy chỉnh
+
+## 10. Deployment Tools - Công cụ triển khai (S)
+
+- [ ] Tạo installation scripts hàng loạt
+- [ ] Công cụ triển khai từ xa (Group Policy/Ansible)
+- [ ] Giao diện tạo và tải scripts từ Dashboard
+- [ ] Package management cho Agent
+- [ ] Deployment analytics và báo cáo
+
+## 11. Data Management - Quản lý dữ liệu (C)
+
+- [ ] Tính năng import/export danh sách máy
+- [ ] Kéo-thả để sắp xếp vị trí máy tính trong phòng
+- [ ] Quản lý metadata và custom fields
+- [ ] Tagging và phân loại máy tính
+- [ ] Data cleansing và validation tools
+
+## 12. Reporting - Báo cáo và phân tích (C)
+
 - [ ] Trang tạo và xem báo cáo sử dụng phòng máy
 - [ ] Biểu đồ và thống kê sử dụng tài nguyên
-- [ ] Báo cáo hiệu suất và tình trạng phần cứng theo thời gian
-- [ ] Giao diện export báo cáo (PDF, Excel)
-- [ ] Bảng điều khiển tùy chỉnh (custom dashboard widgets)
-- [ ] Kiểm thử UX với người dùng thực tế
+- [ ] Báo cáo hiệu suất và tình trạng phần cứng
+- [ ] Export báo cáo (PDF, Excel)
+- [ ] Custom dashboard widgets
 
-### Milestone 8: Tối ưu và bảo mật
-- [ ] Code audit và security review
-- [ ] Tối ưu hiệu suất API và Message Queue
-- [ ] Giảm resource usage của Agent trên máy client
-- [ ] Triển khai rate limiting và bảo vệ API
-- [ ] Hệ thống giám sát bảo mật và phát hiện xâm nhập
-- [ ] Performance benchmarking và stress testing
+## 13. Testing & Quality - Kiểm thử & Chất lượng (S)
 
-### Milestone 9: Tài liệu và hướng dẫn
+- [ ] Unit tests cho API endpoints
+- [ ] Integration tests cho luồng xử lý lệnh
+- [ ] Tests cho Agent trong các môi trường khác nhau
+- [ ] Security tests cho hệ thống xác thực
+- [ ] Performance tests cho heartbeat và message queue
+- [ ] Chaos testing và recovery testing
+
+## 14. Documentation - Tài liệu hướng dẫn (S)
+
 - [ ] API documentation đầy đủ
 - [ ] Tài liệu hướng dẫn sử dụng cho admin
 - [ ] Tài liệu cài đặt và cấu hình hệ thống
 - [ ] Video tutorials cho các tính năng chính
 - [ ] Tài liệu troubleshooting và FAQ
 
-### Milestone 10: Phát hành và triển khai
+## 15. Production Release - Phát hành (C)
+
 - [ ] Chuẩn bị môi trường production
 - [ ] Thiết lập CI/CD pipeline
 - [ ] Triển khai phiên bản beta và thu thập feedback
 - [ ] Sửa lỗi và cải tiến dựa trên feedback
 - [ ] Release phiên bản stable 1.0
 - [ ] Kế hoạch bảo trì và nâng cấp
+
+## 16. Advanced Features - Tính năng nâng cao (W)
+
+- [ ] API mở rộng cho tích hợp bên thứ ba
+- [ ] Remote desktop/control qua web browser
+- [ ] Mobile app cho giám sát từ xa
+- [ ] Automatic provisioning và zero-touch deployment
+- [ ] AI/ML cho phát hiện bất thường và dự đoán lỗi
