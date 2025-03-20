@@ -301,71 +301,209 @@ Thay vì sử dụng installer truyền thống, hệ thống tạo script cài 
 
 ### 4.3 Ví dụ về Installation Script
 
-**PowerShell Script (Windows):**
+**Python Script (Windows):**
 
-```powershell
+```python
+#!/usr/bin/env python3
 # UniLab Agent Installation Script
 # Auto-generated for Computer: LAB-PC-42 in Room: A1-404
 # Generated on: 2025-03-08
 
-$SERVER_URL = "https://unilab.example.com"
-$SECRET_KEY = "sk_wAb5DcE2fG3hI4jK5"
-$AGENT_DOWNLOAD_URL = "https://unilab.example.com/downloads/agent/latest/windows"
-$CONFIG_DIR = "C:\ProgramData\UniLab\Agent"
-$INSTALL_DIR = "C:\Program Files\UniLab\Agent"
+import os
+import sys
+import json
+import time
+import shutil
+import zipfile
+import tempfile
+import subprocess
+import urllib.request
+from pathlib import Path
 
-Write-Host "Starting UniLab Agent installation..." -ForegroundColor Green
+# Thông tin cài đặt
+SERVER_URL = "https://unilab.example.com"
+SECRET_KEY = "sk_wAb5DcE2fG3hI4jK5"
+AGENT_DOWNLOAD_URL = "https://unilab.example.com/downloads/agent/latest/windows"
+CONFIG_DIR = os.path.join(os.environ.get('PROGRAMDATA', 'C:\\ProgramData'), 'UniLab', 'Agent')
+INSTALL_DIR = os.path.join(os.environ.get('PROGRAMFILES', 'C:\\Program Files'), 'UniLab', 'Agent')
 
-# Create directories
-if (-not (Test-Path $CONFIG_DIR)) { New-Item -Path $CONFIG_DIR -ItemType Directory -Force }
-if (-not (Test-Path $INSTALL_DIR)) { New-Item -Path $INSTALL_DIR -ItemType Directory -Force }
-
-# Download Agent
-Write-Host "Downloading Agent software..." -ForegroundColor Yellow
-Invoke-WebRequest -Uri $AGENT_DOWNLOAD_URL -OutFile "$INSTALL_DIR\agent.zip"
-Expand-Archive -Path "$INSTALL_DIR\agent.zip" -DestinationPath $INSTALL_DIR -Force
-Remove-Item -Path "$INSTALL_DIR\agent.zip"
-
-# Create configuration file
-$ConfigJson = @{
-    server = @{
-        url = $SERVER_URL
-        api_base = "/api/agent"
+def print_status(message, status="info"):
+    """In thông báo với màu sắc"""
+    colors = {
+        "info": "\033[94m",    # Blue
+        "success": "\033[92m",  # Green
+        "warning": "\033[93m",  # Yellow
+        "error": "\033[91m",    # Red
+        "end": "\033[0m"        # Reset
     }
-    agent = @{
-        heartbeat_interval = 300
-        logging_level = "info"
+    
+    print(f"{colors.get(status, '')}{message}{colors['end']}")
+
+def create_directories():
+    """Tạo thư mục cài đặt và cấu hình"""
+    print_status("Tạo thư mục cài đặt...", "info")
+    
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    os.makedirs(INSTALL_DIR, exist_ok=True)
+    
+    return True
+
+def download_agent():
+    """Tải agent từ server"""
+    print_status("Đang tải phần mềm Agent...", "info")
+    
+    try:
+        temp_file = os.path.join(tempfile.gettempdir(), "unilab_agent.zip")
+        urllib.request.urlretrieve(AGENT_DOWNLOAD_URL, temp_file)
+        
+        # Giải nén tập tin
+        with zipfile.ZipFile(temp_file, 'r') as zip_ref:
+            zip_ref.extractall(INSTALL_DIR)
+        
+        os.remove(temp_file)
+        return True
+    except Exception as e:
+        print_status(f"Lỗi khi tải agent: {str(e)}", "error")
+        return False
+
+def create_config():
+    """Tạo file cấu hình"""
+    print_status("Tạo file cấu hình...", "info")
+    
+    config = {
+        "server": {
+            "url": SERVER_URL,
+            "api_base": "/api/agent"
+        },
+        "agent": {
+            "heartbeat_interval": 300,
+            "logging_level": "info"
+        },
+        "security": {
+            "secret_key": SECRET_KEY
+        },
+        "identification": {
+            "computer_id": "550e8400-e29b-41d4-a716-446655440000",
+            "mac_address": "00:1B:44:11:3A:B7", 
+            "room_id": "123",
+            "location": "R3-S5",
+            "expected_hostname": "LAB-PC-42"
+        }
     }
-    security = @{
-        secret_key = $SECRET_KEY
-    }
-} | ConvertTo-Json
+    
+    config_path = os.path.join(CONFIG_DIR, "config.json")
+    with open(config_path, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=4)
+    
+    return True
 
-$ConfigJson | Out-File -FilePath "$CONFIG_DIR\config.json" -Encoding UTF8
+def install_service():
+    """Cài đặt agent như một Windows service"""
+    print_status("Cài đặt Windows Service...", "info")
+    
+    try:
+        service_path = os.path.join(INSTALL_DIR, "install-service.exe")
+        subprocess.run([service_path], check=True)
+        return True
+    except Exception as e:
+        print_status(f"Lỗi khi cài đặt service: {str(e)}", "error")
+        return False
 
-# Install as service
-Write-Host "Installing as Windows Service..." -ForegroundColor Yellow
-& "$INSTALL_DIR\install-service.exe"
+def start_service():
+    """Khởi động service"""
+    print_status("Khởi động UniLab Agent service...", "info")
+    
+    try:
+        if sys.platform == 'win32':
+            subprocess.run(["sc", "start", "UniLabAgent"], check=True)
+        else:
+            subprocess.run(["systemctl", "start", "unilab-agent"], check=True)
+        return True
+    except Exception as e:
+        print_status(f"Lỗi khi khởi động service: {str(e)}", "error")
+        return False
 
-# Start service
-Write-Host "Starting UniLab Agent service..." -ForegroundColor Yellow
-Start-Service -Name "UniLabAgent"
+def verify_installation():
+    """Kiểm tra trạng thái cài đặt"""
+    print_status("Xác minh cài đặt...", "info")
+    
+    try:
+        if sys.platform == 'win32':
+            result = subprocess.run(
+                ["sc", "query", "UniLabAgent"], 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            running = "RUNNING" in result.stdout
+        else:
+            result = subprocess.run(
+                ["systemctl", "is-active", "unilab-agent"],
+                capture_output=True,
+                text=True
+            )
+            running = "active" in result.stdout
+            
+        if running:
+            print_status("Cài đặt hoàn tất thành công!", "success")
+        else:
+            print_status("Cài đặt hoàn tất, nhưng service không chạy. Vui lòng kiểm tra logs.", "warning")
+        
+        return running
+    except Exception as e:
+        print_status(f"Lỗi khi kiểm tra service: {str(e)}", "error")
+        return False
 
-# Verify
-$Status = Get-Service -Name "UniLabAgent" | Select-Object -ExpandProperty Status
-if ($Status -eq "Running") {
-    Write-Host "Installation completed successfully!" -ForegroundColor Green
-} else {
-    Write-Host "Installation completed, but service is not running. Please check logs." -ForegroundColor Red
-}
+def main():
+    """Quy trình cài đặt chính"""
+    print_status("=== BẮT ĐẦU CÀI ĐẶT UNILAB AGENT ===", "success")
+    
+    # Kiểm tra quyền admin
+    if sys.platform == 'win32' and os.name == 'nt':
+        try:
+            is_admin = os.getuid() == 0
+        except AttributeError:
+            import ctypes
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
+            
+        if not is_admin:
+            print_status("Script cần được chạy với quyền Administrator!", "error")
+            return False
+    
+    # Các bước cài đặt
+    steps = [
+        ("Tạo thư mục", create_directories),
+        ("Tải phần mềm Agent", download_agent),
+        ("Tạo file cấu hình", create_config),
+        ("Cài đặt service", install_service),
+        ("Khởi động service", start_service),
+        ("Xác minh cài đặt", verify_installation)
+    ]
+    
+    for step_name, step_func in steps:
+        print_status(f"\nBước: {step_name}", "info")
+        success = step_func()
+        if not success:
+            print_status(f"Cài đặt thất bại ở bước: {step_name}", "error")
+            return False
+            
+    print_status("\n=== CÀI ĐẶT UNILAB AGENT HOÀN TẤT ===", "success")
+    print_status("Agent đã được cài đặt và đang chạy.", "success")
+    print_status("Máy tính sẽ tự động đăng ký với UniLab Server trong vài phút.", "info")
+    return True
+
+if __name__ == "__main__":
+    success = main()
+    sys.exit(0 if success else 1)
 ```
 
-### 4.4 Ưu điểm và quy trình sử dụng
-
-1. **Tính linh hoạt**: Dễ dàng điều chỉnh cho từng hệ điều hành và môi trường
-2. **Minh bạch**: Admin có thể xem và hiểu chính xác những gì script thực hiện
-3. **Khắc phục sự cố**: Dễ dàng thêm các bước chẩn đoán và xử lý lỗi
-4. **Tự động hóa**: Hỗ trợ triển khai hàng loạt thông qua Group Policy/Ansible
+### 4.4 Ưu điểm khi sử dụng Python cho Installation Script
+1. Tính nhất quán - Sử dụng Python cho cả Agent và Installation Script
+2. Khả năng đa nền tảng - Mã nguồn Python có thể chạy trên nhiều hệ điều hành với ít thay đổi
+3. Dễ tùy biến - Có thể dễ dàng thêm tính năng mới
+4. Xử lý lỗi tốt hơn - Python có hệ thống xử lý ngoại lệ mạnh mẽ
+5. Hỗ trợ thư viện phong phú - Sử dụng các thư viện Python có sẵn cho nhiều tác vụ
+6. Trình bày UI tốt hơn - Dễ dàng thêm màu sắc, thanh tiến trình, v.v.
 
 #### Quy trình sử dụng
 
@@ -374,42 +512,35 @@ if ($Status -eq "Running") {
 3. **Xác minh**: Script tự động cài đặt, cấu hình và khởi động Agent
 4. **Đăng ký**: Agent khi khởi động sẽ tự động đăng ký với server
 
-### 4.5 Triển khai hàng loạt
+### 4.5 Triển khai với Ansible
 
 Hệ thống hỗ trợ cài đặt Agent trên nhiều máy tính cùng lúc mà không cần admin phải đi từng máy:
 
-1. **Sử dụng Group Policy (cho Windows domain)**:
-
-    - Admin tạo scripts cho nhiều máy từ Dashboard
-    - Đóng gói scripts vào package MSI hoặc Group Policy Object (GPO)
-    - Triển khai qua Group Policy trong Active Directory
-    - Scripts tự động chạy khi máy khởi động/đăng nhập
-
-2. **Sử dụng công cụ phân phối từ xa**:
-
-    ```powershell
-    # Ví dụ script PowerShell để triển khai từ xa
-    $computers = Get-Content "lab-computers.txt"
-    $scriptFolder = "C:\Scripts\InstallationScripts\"
-
-    foreach ($computer in $computers) {
-        # Kiểm tra kết nối
-        if (Test-Connection $computer -Count 1 -Quiet) {
-            # Sao chép script cài đặt
-            Copy-Item "$scriptFolder\$computer-install.ps1" "\\$computer\c$\Temp\"
-
-            # Chạy script từ xa với đặc quyền admin
-            Invoke-Command -ComputerName $computer -ScriptBlock {
-                Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File C:\Temp\$using:computer-install.ps1" -Verb RunAs
-            }
-        }
-    }
-    ```
-
-3. **Sử dụng công cụ quản lý cấu hình**:
-    - SCCM (Microsoft System Center Configuration Manager)
-    - Ansible (cho Linux/macOS)
-    - Puppet hoặc Chef
+```yaml
+# playbook.yml
+- hosts: lab_computers
+  become: yes
+  tasks:
+    - name: Tạo thư mục tạm thời
+      file:
+        path: /tmp/unilab-agent
+        state: directory
+        mode: '0755'
+      
+    - name: Sao chép installation script
+      copy:
+        src: "files/install-agent-{{ inventory_hostname }}.py"
+        dest: /tmp/unilab-agent/install.py
+        mode: '0755'
+      
+    - name: Chạy installation script
+      command: python3 /tmp/unilab-agent/install.py
+      register: install_result
+      
+    - name: Xem log cài đặt
+      debug:
+        var: install_result.stdout_lines
+```
 
 ### 4.6 Cấu trúc thông tin định danh
 
@@ -748,7 +879,6 @@ Server có thể thay đổi các tham số này qua các lần heartbeat để 
 - [x] Thiết lập RabbitMQ và Message Queue architecture
 - [x] Cài đặt Laravel Sanctum cho API authentication
 - [ ] Security framework cho API endpoints
-- [ ] Cấu hình Cache và Queue workers
 
 ## 2. Backend Core - Chức năng backend chính (M)
 
@@ -759,12 +889,11 @@ Server có thể thay đổi các tham số này qua các lần heartbeat để 
 - [ ] Endpoint đăng ký Agent (`/api/agent/register`)
 - [ ] Endpoint xác thực Agent (`/api/agent/token`)
 - [ ] Endpoint heartbeat (`/api/agent/heartbeat`)
-- [ ] API nhận kết quả lệnh từ Agent
+- [x] API nhận kết quả lệnh từ Agent
 
 ## 3. Agent Development - Phát triển Agent (M)
 
-- [ ] Core Agent framework (Windows/Linux)
-- [ ] Module lắng nghe lệnh từ RabbitMQ
+- [x] Module lắng nghe lệnh từ RabbitMQ
 - [ ] Module thực thi các lệnh cơ bản (SHUTDOWN, RESTART)
 - [ ] Module gửi heartbeat và thông tin tài nguyên
 - [ ] Module tự động cập nhật Agent
