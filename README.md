@@ -24,11 +24,11 @@ Hệ thống UniLab sử dụng RabbitMQ làm Message Queue để giao tiếp gi
 
 graph TD
     subgraph RabbitMQ
-        EX_CMD[Exchange: command_exchange]
-        EX_UPDATE[Exchange: update_exchange]
+        EX_CMD[Exchange: unilab_commands]
+        EX_UPDATE[Exchange: unilab_update]
 
-        EX_CMD -->|routing_key=command.*| Q_CMD_ROOM
-        EX_CMD -->|routing_key=command.*| Q_CMD_COMPUTER
+        EX_CMD -->|routing_key=command.room_$roomId.*| Q_CMD_ROOM
+        EX_CMD -->|routing_key=command.room_$roomId.computer_$computerId| Q_CMD_COMPUTER
         EX_UPDATE -->|type=fanout| Q_UPDATE_ALL
     end
 
