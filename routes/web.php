@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CommandController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoomController;
@@ -52,6 +53,25 @@ Route::middleware('auth')->group(function () {
         ->only(['store', 'update', 'destroy']);
     Route::post('/computers/{id}/command', [MachineController::class, 'sendCommand'])
         ->name('computers.command');
+
+    // Command management
+    Route::controller(CommandController::class)->group(function () {
+        // Send command to a specific computer
+        Route::post('/commands/computer', 'storeComputerCommand')
+            ->name('commands.store.computer');
+
+        // Send command to all computers in a room
+        Route::post('/commands/room', 'storeRoomCommand')
+            ->name('commands.store.room');
+
+        // Get command status
+        Route::get('/commands/{id}', 'show')
+            ->name('commands.show');
+
+        // Update command status (endpoint for agents)
+        Route::post('/commands/{id}/status', 'updateStatus')
+            ->name('commands.update.status');
+    });
 });
 
 // Authentication routes

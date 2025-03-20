@@ -30,7 +30,7 @@ export const useMachineStore = defineStore('machine', () => {
 
         selectedMachines.value.forEach((machineId) => {
             router.post(
-                route('commands.store', {
+                route('commands.store.computer', {
                     machine_id: machineId,
                 }),
                 {
