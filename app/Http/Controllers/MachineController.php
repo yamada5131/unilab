@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMachineRequest;
 use App\Http\Requests\UpdateMachineRequest;
-use App\Jobs\ProcessComputerCommand;
 use App\Models\Machine;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class MachineController extends Controller
@@ -40,20 +38,5 @@ class MachineController extends Controller
         $machine->delete();
 
         return to_route('rooms.show', $machine->room_id);
-    }
-
-    public function sendCommand(Request $request, string $id)
-    {
-        $validated = $request->validate([
-            'command' => 'required|string',
-            'params' => 'array|nullable',
-        ]);
-
-        ProcessComputerCommand::dispatch(
-            $id,
-            $validated['command'],
-        )->onQueue($id.'.#');
-
-        return redirect()->back();
     }
 }

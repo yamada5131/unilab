@@ -25,18 +25,19 @@ class CommandController extends Controller
         $command = Command::create(array_merge($validated, ['status' => 'pending']));
 
         // Get machine and room information
-        $machine = Machine::with('room')->findOrFail($validated['machine_id']);
+        $machine = Machine::select(['id', 'room_id'])->findOrFail($validated['machine_id']);
 
         // Prepare the command data
         $commandData = [
             'id' => $command->id,
             'command_type' => $command->command_type,
+            // ...
         ];
         try {
             // Send command to RabbitMQ
             $sendResult = $this->rabbitMQService->sendCommandToComputer(
                 $machine->id,
-                $machine->room->id,
+                $machine->room_id,
                 $commandData
             );
 
