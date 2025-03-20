@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
@@ -13,24 +14,43 @@ class RabbitMQService
 
     public function __construct()
     {
+        try {
+            $this->connect();
+            $this->setupExchanges();
+        } catch (\Exception $e) {
+            Log::error('RabbitMQ connection error: '.$e->getMessage());
+            // You might want to handle this differently depending on your app's needs
+        }
+    }
+
+    protected function connect()
+    {
+
         $this->connection = new AMQPStreamConnection(
-            'armadillo.rmq.cloudamqp.com',
-            5672,
-            'aizfhyyx',
-            'LZhALcBsyDLc1pqBJNowAzFWJ_GsaSBw',
-            'aizfhyyx'
+            config('rabbitmq.host'),
+            config('rabbitmq.port'),
+            config('rabbitmq.user'),
+            config('rabbitmq.password'),
+            config('rabbitmq.vhost'),
         );
 
         $this->channel = $this->connection->channel();
 
+        return true;
+    }
+
+    protected function setupExchanges()
+    {
         // Declare exchanges
-        $this->channel->exchange_declare(
-            'unilab.commands',    // exchange name
-            'topic',              // type
-            false,                // passive
-            true,                 // durable
-            false                 // auto_delete
-        );
+        foreach (config('rabbitmq.exchanges') as $exchange) {
+            $this->channel->exchange_declare(
+                $exchange['name'],    // exchange name
+                $exchange['type'],    // type
+                false,                // passive
+                $exchange['durable'], // durable
+                $exchange['auto_delete'] // auto_delete
+            );
+        }
     }
 
     /**
