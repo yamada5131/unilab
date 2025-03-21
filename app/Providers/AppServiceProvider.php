@@ -63,14 +63,6 @@ final class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Configure the application's URLs.
-     */
-    private function configureUrls(): void
-    {
-        URL::forceScheme('https');
-    }
-
-    /**
      * Configure the application's Vite instance.
      */
     private function configureVite(): void

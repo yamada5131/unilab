@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
         $rooms = Room::factory()->count(10)->create();
 
         // Create Users
-        $users = User::factory()->count(10)->create();
+        User::factory()->count(10)->create();
 
         // Create Computers and assign them to Rooms
         foreach ($rooms as $room) {

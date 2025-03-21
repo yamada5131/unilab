@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('rooms', function (Blueprint $table) {
+        Schema::create('rooms', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->text('name')->unique();
             $table->integer('grid_rows')->nullable('false');

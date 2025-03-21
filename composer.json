@@ -15,8 +15,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "php-amqplib/php-amqplib": "^3.7",
-        "tightenco/ziggy": "^2.0",
-        "vladimir-yuldashev/laravel-queue-rabbitmq": "^14.1"
+        "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.14",
@@ -29,7 +28,8 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.1",
         "pestphp/pest": "^3.7",
-        "pestphp/pest-plugin-laravel": "^3.0"
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "rector/rector": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -63,6 +63,28 @@
         "dev": [
             "Composer\\Config::disableProcessTimeout",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0 --quiet\" \"npm run dev\" --names=server,queue,logs,vite"
+        ],
+        "lint": [
+            "pint",
+            "npm run lint"
+        ],
+        "refactor": "rector",
+        "test:type-coverage": "pest --type-coverage --min=100",
+        "test:typos": "peck",
+        "test:lint": [
+            "pint --test",
+            "npm run test:lint"
+        ],
+        "test:unit": "pest --parallel --coverage --exactly=100.0",
+        "test:types": "phpstan",
+        "test:refactor": "rector --dry-run",
+        "test": [
+            "@test:type-coverage",
+            "@test:typos",
+            "@test:unit",
+            "@test:lint",
+            "@test:types",
+            "@test:refactor"
         ]
     },
     "extra": {

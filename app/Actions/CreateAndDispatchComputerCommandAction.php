@@ -10,10 +10,10 @@ use App\Services\RabbitMQService;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-final class CreateAndDispatchComputerCommandAction
+final readonly class CreateAndDispatchComputerCommandAction
 {
     public function __construct(
-        protected RabbitMQService $rabbitMQService
+        private RabbitMQService $rabbitMQService
     ) {}
 
     public function handle(array $data): array

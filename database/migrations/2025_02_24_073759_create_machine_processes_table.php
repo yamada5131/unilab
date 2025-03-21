@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('machine_processes', function (Blueprint $table) {
+        Schema::create('machine_processes', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('machine_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
             $table->jsonb('processes');

@@ -23,7 +23,7 @@ class RabbitMQService
         }
     }
 
-    protected function connect()
+    protected function connect(): bool
     {
 
         $this->connection = new AMQPStreamConnection(
@@ -56,7 +56,7 @@ class RabbitMQService
     /**
      * Gửi lệnh đến một máy tính cụ thể
      */
-    public function sendCommandToComputer($computerId, $roomId, $command)
+    public function sendCommandToComputer($computerId, $roomId, array $command): bool
     {
         $routingKey = "command.room_{$roomId}.computer_{$computerId}";
 
@@ -79,7 +79,7 @@ class RabbitMQService
     /**
      * Gửi lệnh đến tất cả máy tính trong phòng
      */
-    public function sendCommandToRoom($roomId, $command)
+    public function sendCommandToRoom($roomId, $command): bool
     {
         $routingKey = "command.room_{$roomId}.*";
 
@@ -99,7 +99,7 @@ class RabbitMQService
     /**
      * Phát hành cập nhật agent mới
      */
-    public function publishAgentUpdate($updateInfo, $osType = null, $versionRange = null)
+    public function publishAgentUpdate($updateInfo, $osType = null, $versionRange = null): bool
     {
         // Publish to update exchange
         $routingKey = $osType ? "updates.{$osType}.{$versionRange}" : 'updates.all';
