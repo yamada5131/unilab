@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\ProfileController;

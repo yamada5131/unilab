@@ -1,14 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Command;
 use App\Models\Machine;
 use App\Services\RabbitMQService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class CommandController extends Controller
+final class CommandController extends Controller
 {
     /**
      * Constructor with dependency injection for RabbitMQService
@@ -52,18 +55,18 @@ class CommandController extends Controller
                     'message' => 'Command sent successfully',
                     'command' => $command,
                 ], 200);
-            } else {
-                $command->update(['status' => 'failed', 'error' => 'Failed to send to message queue']);
-
-                Log::error("Failed to send command {$command->id} to message queue");
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to send command to message queue',
-                    'command' => $command,
-                ], 500);
             }
-        } catch (\Exception $e) {
+            $command->update(['status' => 'failed', 'error' => 'Failed to send to message queue']);
+
+            Log::error("Failed to send command {$command->id} to message queue");
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send command to message queue',
+                'command' => $command,
+            ], 500);
+
+        } catch (Exception $e) {
             $command->update(['status' => 'failed', 'error' => $e->getMessage()]);
 
             Log::error("Exception sending command {$command->id}: ".$e->getMessage());
@@ -128,18 +131,18 @@ class CommandController extends Controller
                     'message' => 'Command sent to all machines in room',
                     'command' => $groupCommand,
                 ], 200);
-            } else {
-                $groupCommand->update(['status' => 'failed', 'error' => 'Failed to send to message queue']);
-
-                Log::error("Failed to send group command {$groupCommand->id} to message queue");
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to send command to message queue',
-                    'command' => $groupCommand,
-                ], 500);
             }
-        } catch (\Exception $e) {
+            $groupCommand->update(['status' => 'failed', 'error' => 'Failed to send to message queue']);
+
+            Log::error("Failed to send group command {$groupCommand->id} to message queue");
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send command to message queue',
+                'command' => $groupCommand,
+            ], 500);
+
+        } catch (Exception $e) {
             $groupCommand->update(['status' => 'failed', 'error' => $e->getMessage()]);
 
             Log::error("Exception sending group command {$groupCommand->id}: ".$e->getMessage());
