@@ -1,16 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Command;
 use Carbon\Carbon;
+use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
-class AgentCommandController extends Controller
+final class AgentCommandController extends Controller
 {
-    public function updateStatus(Request $request)
+    public function updateStatus(Request $request): JsonResponse
     {
         // Validate the incoming request
         $validated = $request->validate([
@@ -44,7 +48,7 @@ class AgentCommandController extends Controller
                 'success' => true,
                 'message' => 'Command status updated successfully',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to update command status: '.$e->getMessage());
 
             return response()->json([

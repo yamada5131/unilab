@@ -59,12 +59,12 @@ Route::middleware('auth')->group(function () {
     // Command management
     Route::controller(CommandController::class)->group(function () {
         // Send command to a specific computer
-        Route::post('/commands/computer', 'storeComputerCommand')
-            ->name('commands.store.computer');
+        Route::post('/commands/computer', 'dispatchToComputer')
+            ->name('commands.dispatch.computer');
 
         // Send command to all computers in a room
-        Route::post('/commands/room', 'storeRoomCommand')
-            ->name('commands.store.room');
+        Route::post('/commands/room', 'dispatchToRoom')
+            ->name('commands.dispatch.room');
 
         // Get command status
         Route::get('/commands/{id}', 'show')
