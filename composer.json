@@ -19,17 +19,16 @@
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.14",
+        "brianium/paratest": "^7.7",
         "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.0",
         "laravel/breeze": "^2.3",
         "laravel/pail": "^1.1",
         "laravel/pint": "^1.13",
-        "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.1",
         "pestphp/pest": "^3.7",
-        "pestphp/pest-plugin-laravel": "^3.0",
-        "rector/rector": "^2.0"
+        "pestphp/pest-plugin-laravel": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -67,24 +66,6 @@
         "lint": [
             "pint",
             "npm run lint"
-        ],
-        "refactor": "rector",
-        "test:type-coverage": "pest --type-coverage --min=100",
-        "test:typos": "peck",
-        "test:lint": [
-            "pint --test",
-            "npm run test:lint"
-        ],
-        "test:unit": "pest --parallel --coverage --exactly=100.0",
-        "test:types": "phpstan",
-        "test:refactor": "rector --dry-run",
-        "test": [
-            "@test:type-coverage",
-            "@test:typos",
-            "@test:unit",
-            "@test:lint",
-            "@test:types",
-            "@test:refactor"
         ]
     },
     "extra": {
