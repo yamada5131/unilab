@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Actions;
 
 use App\Models\Command;
@@ -58,7 +56,10 @@ final readonly class CreateAndDispatchComputerCommandAction
                 ];
             }
 
-            $command->update(['status' => 'failed', 'error' => 'Failed to send to message queue']);
+            $command->update([
+                'status' => 'failed',
+                'payload' => json_encode(['error' => 'Failed to send to message queue'])
+            ]);
             Log::error("Failed to send command {$command->id} to message queue");
 
             return [
@@ -69,7 +70,10 @@ final readonly class CreateAndDispatchComputerCommandAction
             ];
 
         } catch (Exception $e) {
-            $command->update(['status' => 'failed', 'error' => $e->getMessage()]);
+            $command->update([
+                'status' => 'failed',
+                'payload' => json_encode(['error' => $e->getMessage()])
+            ]);
             Log::error("Exception sending command {$command->id}: ".$e->getMessage());
 
             return [

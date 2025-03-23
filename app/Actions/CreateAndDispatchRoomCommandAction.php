@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Actions;
 
 use App\Models\Command;
@@ -21,9 +19,11 @@ final readonly class CreateAndDispatchRoomCommandAction
         $groupCommand = Command::query()->create([
             'room_id' => $data['room_id'],
             'command_type' => $data['command_type'],
-            'params' => $data['params'] ?? [],
+            'payload' => json_encode([
+                'params' => $data['params'] ?? [],
+                'priority' => $data['priority'] ?? 5
+            ]),
             'status' => 'pending',
-            'priority' => $data['priority'] ?? 5,
             'is_group_command' => true,
         ]);
 
@@ -31,10 +31,10 @@ final readonly class CreateAndDispatchRoomCommandAction
         $commandData = [
             'id' => $groupCommand->id,
             'type' => $groupCommand->command_type,
-            'params' => $groupCommand->params,
+            'params' => $groupCommand->payload['params'] ?? [],
             'issued_at' => now()->toIso8601String(),
             'expires_in' => $data['expires_in'] ?? 600, // Default 10 minutes
-            'priority' => $groupCommand->priority,
+            'priority' => $groupCommand->payload['priority'] ?? 5,
             'requires_confirmation' => in_array($groupCommand->command_type, ['SHUTDOWN', 'RESTART']),
         ];
 
@@ -46,7 +46,7 @@ final readonly class CreateAndDispatchRoomCommandAction
             );
 
             if ($sendResult) {
-                $groupCommand->update(['status' => 'sent']);
+                $groupCommand->update(['status' => 'completed']);
 
                 Log::info("Group command ID {$groupCommand->id} of type {$groupCommand->command_type} sent to room {$data['room_id']}");
 
@@ -58,7 +58,10 @@ final readonly class CreateAndDispatchRoomCommandAction
                 ];
             }
 
-            $groupCommand->update(['status' => 'failed', 'error' => 'Failed to send to message queue']);
+            $groupCommand->update([
+                'status' => 'failed',
+                'payload' => json_encode(['error' => 'Failed to send to message queue'])
+            ]);
             Log::error("Failed to send group command {$groupCommand->id} to message queue");
 
             return [
@@ -69,7 +72,10 @@ final readonly class CreateAndDispatchRoomCommandAction
             ];
 
         } catch (Exception $e) {
-            $groupCommand->update(['status' => 'failed', 'error' => $e->getMessage()]);
+            $groupCommand->update([
+                'status' => 'failed',
+                'payload' => json_encode(['error' => $e->getMessage()])
+            ]);
             Log::error("Exception sending group command {$groupCommand->id}: ".$e->getMessage());
 
             return [

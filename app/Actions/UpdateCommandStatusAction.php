@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Actions;
 
 use App\Models\Command;
@@ -14,9 +12,11 @@ final class UpdateCommandStatusAction
 
         $command->update([
             'status' => $data['status'],
-            'result' => $data['result'] ?? $command->result,
-            'error' => $data['error'] ?? $command->error,
-            'completed_at' => in_array($data['status'], ['done', 'failed', 'cancelled']) ? now() : null,
+            'payload' => json_encode([
+                'result' => $data['result'] ?? json_decode($command->payload, true)['result'] ?? null,
+                'error' => $data['error'] ?? json_decode($command->payload, true)['error'] ?? null
+            ]),
+            'completed_at' => in_array($data['status'], ['completed', 'failed']) ? now() : null,
         ]);
 
         return $command;

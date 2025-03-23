@@ -6,25 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('machine_processes', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->foreignUuid('machine_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignUuid('machine_id')->constrained()->cascadeOnUpdate()->cascadeOnDelete();
             $table->jsonb('processes');
             $table->timestampTz('reported_at')->useCurrent();
             $table->timestampsTz();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('machine_processes');
     }
 };

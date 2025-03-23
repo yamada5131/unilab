@@ -8,14 +8,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('machines', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->foreignUuid('room_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignUuid('room_id')->constrained()->cascadeOnUpdate()->cascadeOnDelete();
             $table->text('name');
             $table->macAddress('mac_address')->unique();
             $table->ipAddress('ip_address');
@@ -25,13 +22,5 @@ return new class extends Migration
             $table->timestampTz('last_seen');
             $table->timestampsTz();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('machines');
     }
 };
