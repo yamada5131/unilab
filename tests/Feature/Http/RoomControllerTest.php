@@ -4,6 +4,7 @@ use App\Models\Machine;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -108,6 +109,32 @@ test('update endpoint supports partial updates', function () {
     ]);
 });
 
+test('show endpoint returns 404 for non-existent room', function () {
+    // Generate a UUID that doesn't exist in the database
+    $nonExistentId = Str::uuid();
+    
+    // Act
+    $response = $this->get(route('rooms.show', $nonExistentId));
+
+    // Assert
+    $response->assertNotFound();
+});
+
+test('update endpoint returns 404 for non-existent room', function () {
+    // Generate a UUID that doesn't exist in the database
+    $nonExistentId = Str::uuid();
+    
+    // Act
+    $response = $this->patch(route('rooms.update', $nonExistentId), [
+        'name' => 'Updated Name',
+        'grid_rows' => 10,
+        'grid_cols' => 12,
+    ]);
+
+    // Assert
+    $response->assertNotFound();
+});
+
 test('destroy endpoint removes room', function () {
     // Arrange
     $room = Room::factory()->create();
@@ -118,6 +145,17 @@ test('destroy endpoint removes room', function () {
     // Assert
     $response->assertRedirect();
     $this->assertDatabaseMissing('rooms', ['id' => $room->id]);
+});
+
+test('destroy endpoint returns 404 for non-existent room', function () {
+    // Generate a UUID that doesn't exist in the database
+    $nonExistentId = Str::uuid();
+    
+    // Act
+    $response = $this->delete(route('rooms.destroy', $nonExistentId));
+
+    // Assert
+    $response->assertNotFound();
 });
 
 test('unauthorized users cannot access rooms', function () {

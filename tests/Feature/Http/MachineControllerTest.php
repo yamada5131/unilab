@@ -172,6 +172,17 @@ test('update endpoint successfully updates allowed fields', function () {
     ]);
 });
 
+test('update endpoint returns 404 for non-existent computer', function () {
+    // Act
+    $response = $this->put(route('computers.update', 'non-existent-id'), [
+        'name' => 'Updated Name',
+        'ip_address' => '192.168.1.200',
+    ]);
+
+    // Assert
+    $response->assertNotFound();
+});
+
 test('destroy endpoint removes computer', function () {
     // Arrange
     $computer = Machine::factory()->create([
@@ -184,6 +195,14 @@ test('destroy endpoint removes computer', function () {
     // Assert
     $response->assertRedirect(route('rooms.show', $this->room->id)); // Check specific redirect
     $this->assertDatabaseMissing('machines', ['id' => $computer->id]);
+});
+
+test('destroy endpoint returns 404 for non-existent computer', function () {
+    // Act
+    $response = $this->delete(route('computers.destroy', 'non-existent-id'));
+
+    // Assert
+    $response->assertNotFound();
 });
 
 test('cannot access computer endpoints when unauthorized', function () {
@@ -207,6 +226,8 @@ test('cannot access computer endpoints when unauthorized', function () {
     // Also verify no data was changed
     $this->assertDatabaseHas('machines', ['id' => $computer->id]);
 });
+
+
 
 // Additional test for preventing MAC address duplicates
 test('store prevents duplicate mac addresses', function () {
